@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ChatProvider, GlobalChat, ChatTrigger } from "@/components/chat";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -35,7 +36,11 @@ export default function RootLayout({
         <a href="#main-content" className="skip-nav">
           Skip to main content
         </a>
-        <TooltipProvider>{children}</TooltipProvider>
+        <ChatProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+          <GlobalChat />
+          <ChatTrigger />
+        </ChatProvider>
       </body>
     </html>
   );

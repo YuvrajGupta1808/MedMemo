@@ -16,8 +16,9 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Sparkles } from 'lucide-react';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
+import { useChatPanel } from '@/components/chat';
 import { fetchUsers, fetchSessions, createUser, type Patient, type Session } from '@/lib/supabase';
 import { apiCreateSession } from '@/lib/api';
 
@@ -29,6 +30,11 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const { toggle: toggleChat, setContext } = useChatPanel();
+
+  useEffect(() => {
+    setContext({ page: 'dashboard' });
+  }, [setContext]);
 
   useEffect(() => {
     loadData();
@@ -102,6 +108,13 @@ export default function DashboardPage() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleChat}
+            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors focus-ring"
+            aria-label="Open AI assistant"
+          >
+            <Sparkles size={20} />
+          </button>
           <button
             className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors focus-ring"
             aria-label="Notifications"

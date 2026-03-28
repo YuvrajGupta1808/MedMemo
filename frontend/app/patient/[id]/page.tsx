@@ -20,26 +20,26 @@ import {
   Upload,
 } from 'lucide-react';
 import Link from 'next/link';
-import Chatbot from '@/components/Chatbot';
+import { useChatPanel } from '@/components/chat';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
 import { DataTable } from '@/components/tool-ui/data-table/data-table';
 import { ProgressTracker } from '@/components/tool-ui/progress-tracker/progress-tracker';
 import { CitationList } from '@/components/tool-ui/citation/citation-list';
 import {
   fetchUser,
-  fetchSessions,
   fetchDocumentsForUser,
   fetchNotesForUser,
   type Patient,
-  type Session,
   type Document,
   type Note,
 } from '@/lib/supabase';
 import {
+  apiGetSessions,
   apiIngestFiles,
   apiDeleteDocument,
   apiUploadAudio,
   apiTranscribe,
+  type ApiSession,
   type IngestResult,
 } from '@/lib/api';
 
@@ -48,27 +48,35 @@ export default function PatientPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'notes'>('overview');
   const [user, setUser] = useState<Patient | null>(null);
-  const [userSessions, setUserSessions] = useState<Session[]>([]);
+  const [userSessions, setUserSessions] = useState<ApiSession[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showChat, setShowChat] = useState(true);
+  const { setContext, toggle: toggleChat } = useChatPanel();
 
   useEffect(() => {
     if (id) loadPatientData(id as string);
   }, [id]);
 
+  // Update global chat context when patient loads
+  useEffect(() => {
+    if (user) {
+      setContext({ page: 'patient', patientId: user.id, patientName: user.external_id });
+    }
+    return () => setContext({ page: 'home' });
+  }, [user, setContext]);
+
   async function loadPatientData(userId: string) {
     setLoading(true);
     setError(null);
     try {
-      const [userData, sessionsData, docsData, notesData] = await Promise.all([
+      const [userData, docsData, notesData] = await Promise.all([
         fetchUser(userId),
-        fetchSessions(userId),
         fetchDocumentsForUser(userId),
         fetchNotesForUser(userId),
       ]);
+      const sessionsData = await apiGetSessions(userData.external_id);
       setUser(userData);
       setUserSessions(sessionsData);
       setDocuments(docsData);
@@ -115,10 +123,9 @@ export default function PatientPage() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowChat(!showChat)}
-            className={`p-2 rounded-lg transition-colors focus-ring ${showChat ? 'bg-blue-50 text-blue-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}
-            aria-label={showChat ? 'Hide AI assistant' : 'Show AI assistant'}
-            aria-pressed={showChat}
+            onClick={toggleChat}
+            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors focus-ring"
+            aria-label="Toggle AI assistant"
           >
             <Sparkles size={20} />
           </button>
@@ -219,12 +226,6 @@ export default function PatientPage() {
           ) : null}
         </div>
 
-        {/* Right Sidebar - Chatbot */}
-        {showChat && user && (
-          <aside className="hidden lg:flex w-[380px] bg-white border-l border-slate-200 flex-col shrink-0 overflow-hidden" aria-label="AI Assistant">
-            <Chatbot patientName={user.external_id} />
-          </aside>
-        )}
       </main>
     </div>
   );
@@ -249,7 +250,7 @@ function NavItem({ icon, label, active, onClick }: { icon: ReactNode; label: str
   );
 }
 
-function OverviewPanel({ user, sessions, documents, notes }: { user: Patient; sessions: Session[]; documents: Document[]; notes: Note[] }) {
+function OverviewPanel({ user, sessions, documents, notes }: { user: Patient; sessions: ApiSession[]; documents: Document[]; notes: Note[] }) {
   // Stats for StatsDisplay component
   const stats = [
     { key: 'chats', label: 'Chats', value: sessions.length, format: { kind: 'number' as const } },
@@ -323,7 +324,7 @@ function OverviewPanel({ user, sessions, documents, notes }: { user: Patient; se
   );
 }
 
-function DocumentsPanel({ documents, sessions, user, reload }: { documents: Document[]; sessions: Session[]; user: Patient; reload: () => void }) {
+function DocumentsPanel({ documents, sessions, user, reload }: { documents: Document[]; sessions: ApiSession[]; user: Patient; reload: () => void }) {
   const sessionId = sessions[0]?.id ?? null;
   const [uploading, setUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState<IngestResult[] | null>(null);
@@ -454,7 +455,7 @@ function DocumentsPanel({ documents, sessions, user, reload }: { documents: Docu
   );
 }
 
-function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions: Session[]; user: Patient; reload: () => void }) {
+function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions: ApiSession[]; user: Patient; reload: () => void }) {
   const sessionId = sessions[0]?.id ?? null;
   const [step, setStep] = useState<'idle' | 'uploading' | 'transcribing'>('idle');
   const [actionError, setActionError] = useState<string | null>(null);
