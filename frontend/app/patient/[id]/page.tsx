@@ -158,7 +158,7 @@ export default function PatientPage() {
       {/* Main Content Area */}
       <main id="main-content" className="flex-1 flex overflow-hidden">
         {/* Left content area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 custom-scrollbar">
           {loading ? (
             <div className="max-w-4xl mx-auto" role="status" aria-label="Loading patient data">
               <div className="skeleton h-6 w-48 mb-4" />
@@ -187,28 +187,22 @@ export default function PatientPage() {
             </div>
           ) : user ? (
             <div className="max-w-4xl mx-auto">
-              {/* Breadcrumb */}
-              <nav aria-label="Breadcrumb" className="mb-6">
-                <ol className="flex items-center gap-2 text-sm">
-                  <li><button onClick={() => router.push('/')} className="text-slate-500 hover:text-slate-700 focus-ring rounded px-1 transition-colors font-medium">Dashboard</button></li>
-                  <li aria-hidden="true" className="text-slate-300">/</li>
-                  <li className="text-blue-600 font-semibold" aria-current="page">{user.external_id}</li>
-                </ol>
-              </nav>
-
-              {/* Patient header */}
-              <div className="flex items-start gap-4 mb-8 pb-6 border-b border-slate-100">
-                <PatientAvatar name={user.external_id} size="lg" />
-                <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-slate-900 mb-1">{user.external_id}</h1>
-                  <p className="text-sm text-slate-500 font-medium">
-                    🩺 Patient since {new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              {/* Patient header — compact with inline breadcrumb */}
+              <div className="flex items-center gap-3 mb-4">
+                <button onClick={() => router.push('/')} className="text-slate-400 hover:text-slate-600 focus-ring rounded p-1 transition-colors" aria-label="Back to dashboard">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
+                <PatientAvatar name={user.external_id} size="md" />
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg font-bold text-slate-900 leading-tight truncate">{user.external_id}</h1>
+                  <p className="text-xs text-slate-500">
+                    Patient since {new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
               </div>
 
               {/* Tab bar */}
-              <div role="tablist" aria-label="Patient sections" className="flex gap-2 mb-8 border-b border-slate-200 overflow-x-auto">
+              <div role="tablist" aria-label="Patient sections" className="flex gap-1 mb-4 border-b border-slate-200 overflow-x-auto">
                 {tabs.map((tab) => (
                   <button
                     key={tab.key}
@@ -216,13 +210,13 @@ export default function PatientPage() {
                     aria-selected={activeTab === tab.key}
                     aria-controls={`panel-${tab.key}`}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-all whitespace-nowrap focus-ring relative ${
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-all whitespace-nowrap focus-ring relative ${
                       activeTab === tab.key
                         ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600'
                         : 'text-slate-600 hover:text-slate-800'
                     }`}
                   >
-                    <span aria-hidden="true" className={`text-base ${activeTab === tab.key ? 'text-blue-600' : 'text-slate-400'}`}>{tab.icon}</span>
+                    <span aria-hidden="true" className={`text-sm ${activeTab === tab.key ? 'text-blue-600' : 'text-slate-400'}`}>{tab.icon}</span>
                     {tab.label}
                   </button>
                 ))}
@@ -299,51 +293,55 @@ function OverviewPanel({ user, sessions, documents, notes }: { user: Patient; se
   }));
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Stats Display — tool-ui component */}
+    <div className="flex flex-col gap-4">
+      {/* Stats Display — compact, no redundant header */}
       <StatsDisplay
         id="patient-stats"
-        title={`${user.external_id} — Overview`}
-        description={`Patient since ${new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`}
         stats={stats}
         className="w-full"
       />
 
-      {/* Documents Table — tool-ui component */}
-      {documents.length > 0 && (
+      {/* Tables side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Documents Table */}
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">Recent Documents</h3>
-          <DataTable
-            id="patient-documents"
-            columns={[
-              { key: 'name', label: 'File Name', priority: 'primary' },
-              { key: 'type', label: 'Type' },
-              { key: 'pages', label: 'Pages', format: { kind: 'number' }, align: 'right' },
-              { key: 'status', label: 'Status' },
-              { key: 'date', label: 'Date' },
-            ]}
-            data={docTableData}
-            emptyMessage="No documents uploaded yet."
-          />
+          <h3 className="text-xs font-semibold text-slate-900 mb-2">Recent Documents</h3>
+          {documents.length > 0 ? (
+            <DataTable
+              id="patient-documents"
+              columns={[
+                { key: 'name', label: 'File Name', priority: 'primary' },
+                { key: 'type', label: 'Type' },
+                { key: 'pages', label: 'Pages', format: { kind: 'number' }, align: 'right' },
+                { key: 'date', label: 'Date' },
+              ]}
+              data={docTableData.slice(0, 5)}
+              emptyMessage="No documents uploaded yet."
+            />
+          ) : (
+            <p className="text-xs text-slate-400 py-4">No documents yet.</p>
+          )}
         </div>
-      )}
 
-      {/* Chats Table — tool-ui component */}
-      {sessions.length > 0 && (
+        {/* Chats Table */}
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">Recent Chats</h3>
-          <DataTable
-            id="patient-chats"
-            columns={[
-              { key: 'name', label: 'Chat Name', priority: 'primary' },
-              { key: 'created', label: 'Created' },
-              { key: 'updated', label: 'Last Updated' },
-            ]}
-            data={sessionTableData}
-            emptyMessage="No chats yet."
-          />
+          <h3 className="text-xs font-semibold text-slate-900 mb-2">Recent Chats</h3>
+          {sessions.length > 0 ? (
+            <DataTable
+              id="patient-chats"
+              columns={[
+                { key: 'name', label: 'Chat Name', priority: 'primary' },
+                { key: 'created', label: 'Created' },
+                { key: 'updated', label: 'Last Updated' },
+              ]}
+              data={sessionTableData.slice(0, 5)}
+              emptyMessage="No chats yet."
+            />
+          ) : (
+            <p className="text-xs text-slate-400 py-4">No chats yet.</p>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
