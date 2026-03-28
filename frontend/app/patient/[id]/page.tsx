@@ -7,21 +7,17 @@ import {
   Mic,
   FileText,
   ClipboardList,
-  AppWindow,
   Sparkles,
   Download,
-  Clock,
-  CheckCircle2,
   ChevronLeft,
-  Plus,
   Bell,
   LayoutDashboard,
-  X,
   AlertCircle,
   RefreshCw,
-  Folder,
 } from 'lucide-react';
 import Chatbot from '@/components/Chatbot';
+import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
+import { DataTable } from '@/components/tool-ui/data-table/data-table';
 import {
   fetchUser,
   fetchSessions,
@@ -240,86 +236,75 @@ function NavItem({ icon, label, active, onClick }: { icon: ReactNode; label: str
 }
 
 function OverviewPanel({ user, sessions, documents, notes }: { user: Patient; sessions: Session[]; documents: Document[]; notes: Note[] }) {
+  // Stats for StatsDisplay component
+  const stats = [
+    { key: 'sessions', label: 'Sessions', value: sessions.length, format: { kind: 'number' as const } },
+    { key: 'documents', label: 'Documents', value: documents.length, format: { kind: 'number' as const } },
+    { key: 'notes', label: 'Notes', value: notes.length, format: { kind: 'number' as const } },
+  ];
+
+  // Documents table data
+  const docTableData = documents.slice(0, 10).map((d) => ({
+    name: d.file_name,
+    type: d.file_type.toUpperCase(),
+    pages: d.pages_ingested,
+    status: d.status,
+    date: new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+  }));
+
+  // Sessions table data
+  const sessionTableData = sessions.slice(0, 10).map((s) => ({
+    name: s.name,
+    created: new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    updated: new Date(s.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  }));
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {/* Stats cards */}
-      <StatCard label="Sessions" value={sessions.length} icon={<Mic size={18} />} color="blue" />
-      <StatCard label="Documents" value={documents.length} icon={<FileText size={18} />} color="emerald" />
-      <StatCard label="Notes" value={notes.length} icon={<ClipboardList size={18} />} color="purple" />
-      <StatCard label="Patient ID" value={user.id.slice(0, 8)} icon={<User size={18} />} color="slate" isText />
+    <div className="flex flex-col gap-6">
+      {/* Stats Display — tool-ui component */}
+      <StatsDisplay
+        id="patient-stats"
+        title={`${user.external_id} — Overview`}
+        description={`Patient since ${new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`}
+        stats={stats}
+        className="max-w-full"
+      />
 
-      {/* Recent sessions */}
-      {sessions.length > 0 && (
-        <div className="col-span-full bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">Recent Sessions</h3>
-          <div className="flex flex-col gap-3">
-            {sessions.slice(0, 5).map((s) => (
-              <div key={s.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                <div>
-                  <p className="text-sm font-medium text-slate-800">{s.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                </div>
-                <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded-lg">
-                  <CheckCircle2 size={12} className="inline mr-1" aria-hidden="true" />
-                  Active
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Recent documents */}
+      {/* Documents Table — tool-ui component */}
       {documents.length > 0 && (
-        <div className="col-span-full bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">Recent Documents</h3>
-          <div className="flex flex-col gap-3">
-            {documents.slice(0, 5).map((d) => (
-              <div key={d.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
-                    <FileText size={14} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">{d.file_name}</p>
-                    <p className="text-xs text-slate-500">{d.file_type.toUpperCase()} · {d.pages_ingested} pages</p>
-                  </div>
-                </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-lg ${
-                  d.status === 'ingested' ? 'text-emerald-700 bg-emerald-50' :
-                  d.status === 'processing' ? 'text-amber-700 bg-amber-50' :
-                  d.status === 'failed' ? 'text-red-700 bg-red-50' :
-                  'text-slate-600 bg-slate-100'
-                }`}>
-                  {d.status}
-                </span>
-              </div>
-            ))}
-          </div>
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">Recent Documents</h3>
+          <DataTable
+            id="patient-documents"
+            columns={[
+              { key: 'name', label: 'File Name', priority: 'primary' },
+              { key: 'type', label: 'Type' },
+              { key: 'pages', label: 'Pages', format: { kind: 'number' }, align: 'right' },
+              { key: 'status', label: 'Status' },
+              { key: 'date', label: 'Date' },
+            ]}
+            data={docTableData}
+            emptyMessage="No documents uploaded yet."
+          />
         </div>
       )}
-    </div>
-  );
-}
 
-function StatCard({ label, value, icon, color, isText }: { label: string; value: number | string; icon: ReactNode; color: string; isText?: boolean }) {
-  const colorMap: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-700',
-    emerald: 'bg-emerald-50 text-emerald-700',
-    purple: 'bg-purple-50 text-purple-700',
-    slate: 'bg-slate-100 text-slate-700',
-  };
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${colorMap[color] || colorMap.slate}`}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-xs font-medium text-slate-500">{label}</p>
-        <p className={`font-bold text-slate-900 ${isText ? 'text-sm font-mono' : 'text-xl'}`}>{value}</p>
-      </div>
+      {/* Sessions Table — tool-ui component */}
+      {sessions.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">Recent Sessions</h3>
+          <DataTable
+            id="patient-sessions"
+            columns={[
+              { key: 'name', label: 'Session Name', priority: 'primary' },
+              { key: 'created', label: 'Created' },
+              { key: 'updated', label: 'Last Updated' },
+            ]}
+            data={sessionTableData}
+            emptyMessage="No sessions yet."
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -334,31 +319,29 @@ function DocumentsPanel({ documents }: { documents: Document[] }) {
       />
     );
   }
+
+  const tableData = documents.map((d) => ({
+    name: d.file_name,
+    type: d.file_type.toUpperCase(),
+    pages: d.pages_ingested,
+    status: d.status,
+    date: new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  }));
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {documents.map((doc) => (
-        <div key={doc.id} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow focus-ring" tabIndex={0}>
-          <div className="flex items-start justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
-              <FileText size={18} />
-            </div>
-            <span className={`text-xs font-medium px-2 py-1 rounded-lg ${
-              doc.status === 'ingested' ? 'text-emerald-700 bg-emerald-50' :
-              doc.status === 'processing' ? 'text-amber-700 bg-amber-50' :
-              doc.status === 'failed' ? 'text-red-700 bg-red-50' :
-              'text-slate-600 bg-slate-100'
-            }`}>
-              {doc.status}
-            </span>
-          </div>
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">{doc.file_name}</h3>
-          <p className="text-xs text-slate-600">
-            {doc.file_type.toUpperCase()} · {doc.pages_ingested} pages ·{' '}
-            {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          </p>
-        </div>
-      ))}
-    </div>
+    <DataTable
+      id="all-documents"
+      columns={[
+        { key: 'name', label: 'File Name', priority: 'primary' },
+        { key: 'type', label: 'Type' },
+        { key: 'pages', label: 'Pages', format: { kind: 'number' }, align: 'right' },
+        { key: 'status', label: 'Status' },
+        { key: 'date', label: 'Date' },
+      ]}
+      data={tableData}
+      defaultSort={{ by: 'date', direction: 'desc' }}
+      emptyMessage="No documents uploaded yet."
+    />
   );
 }
 
@@ -372,29 +355,25 @@ function SessionsPanel({ sessions }: { sessions: Session[] }) {
       />
     );
   }
+
+  const tableData = sessions.map((s) => ({
+    name: s.name,
+    created: new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    updated: new Date(s.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  }));
+
   return (
-    <div className="flex flex-col gap-3">
-      {sessions.map((session) => (
-        <div key={session.id} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow focus-ring" tabIndex={0}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-                <Folder size={18} />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">{session.name}</h3>
-                <p className="text-xs text-slate-600">
-                  Created {new Date(session.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </p>
-              </div>
-            </div>
-            <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded-lg flex items-center gap-1">
-              <CheckCircle2 size={12} aria-hidden="true" /> Active
-            </span>
-          </div>
-        </div>
-      ))}
-    </div>
+    <DataTable
+      id="all-sessions"
+      columns={[
+        { key: 'name', label: 'Session Name', priority: 'primary' },
+        { key: 'created', label: 'Created' },
+        { key: 'updated', label: 'Last Updated' },
+      ]}
+      data={tableData}
+      defaultSort={{ by: 'created', direction: 'desc' }}
+      emptyMessage="No sessions yet."
+    />
   );
 }
 
