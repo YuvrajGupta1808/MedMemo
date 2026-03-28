@@ -1,7 +1,17 @@
+import base64
+import os
 import sys
+
 import railtracks as rt
 from dotenv import load_dotenv
+
 load_dotenv()
+
+from railtracks.human_in_the_loop.local_chat_ui import ChatUI, UserMessageAttachment
+from railtracks.human_in_the_loop import HILMessage
+from railtracks.llm.message import UserMessage, AssistantMessage
+from railtracks.llm.history import MessageHistory
+from railtracks.interaction._call import call
 
 from src.agents.tools import (
     create_patient_session,
@@ -12,6 +22,8 @@ from src.agents.tools import (
     list_session_documents,
     list_session_notes,
 )
+
+UPLOAD_DIR = "/tmp/mednemo_uploads"
 
 # LLM — reuses GEMINI_API_KEY from .env
 model = rt.llm.GeminiLLM("gemini-2.5-flash")
@@ -35,7 +47,7 @@ and answer clinical questions using RAG (retrieval-augmented generation).
 
 Capabilities:
 - Create and list patient sessions
-- Ingest PDF, JPEG, PNG medical documents into the current session  
+- Ingest PDF, JPEG, PNG medical documents into the current session
 - Transcribe clinical audio recordings with speaker diarization
 - Query ingested documents to answer clinical questions
 - List documents and audio notes in the current session
@@ -44,26 +56,79 @@ Always confirm which patient session is active before ingesting or querying.
 The user_id and session_id are already set in your context — you do not need to ask for them.
 
 File Attachments:
-- When users attach files (PDF, JPEG, PNG) via the chat Attachments tab, the file data is available as base64-encoded content in the message attachments.
-- To ingest an attached file, call `ingest_document` with `file_name` (the attachment filename) and `file_data` (the base64 content from the attachment). Do NOT use `file_path` for attached files.
-- Process each attached file one at a time, confirming ingestion of each before moving to the next.
-- Do NOT ask users for file paths when files are already attached to the message — use the attachment data directly.
-- If no files are attached but the user mentions a file, then ask for the file path.
+- When users attach files, they are automatically saved to /tmp/mednemo_uploads/.
+- The saved file paths will appear in the message text.
+- Call ingest_document(file_path="...") for each file path listed.
+- Process files one at a time. Do NOT ask the user for file paths when paths are already provided.
 """,
 )
 
-# Chat entry point — opens local browser chat UI
+
 @rt.function_node
 async def mednemo_chat():
     """Start an interactive chat session with MedNemo in the browser."""
-    response = await rt.interactive.local_chat(MedNemoAgent)
-    if response is None:
-        return "Session ended."
-    return response
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    chat_ui = ChatUI(auto_open=True)
+    await chat_ui.connect()
+
+    msg_history = MessageHistory([])
+    last_tool_idx = 0
+
+    while chat_ui.is_connected:
+        try:
+            message = await chat_ui.receive_message()
+            if message is None:
+                continue
+
+            # Save attachments to disk, collect paths
+            saved_paths = []
+            if message.attachments:
+                for att in message.attachments:
+                    if att.type == "file" and att.data:
+                        fname = att.name or "upload"
+                        data = att.data
+                        # Strip data URI prefix if present
+                        if data.startswith("data:"):
+                            data = data.split(",", 1)[-1]
+                        try:
+                            file_bytes = base64.b64decode(data)
+                            save_path = os.path.join(UPLOAD_DIR, fname)
+                            with open(save_path, "wb") as f:
+                                f.write(file_bytes)
+                            saved_paths.append(save_path)
+                        except Exception as e:
+                            saved_paths.append(f"(failed to save {fname}: {e})")
+
+            # Build message content with file paths appended
+            content = message.content or ""
+            if saved_paths:
+                paths_list = "\n".join(f"- {p}" for p in saved_paths)
+                content += f"\n\nAttached files saved to disk:\n{paths_list}"
+
+            # Do NOT pass attachments to UserMessage — avoids Attachment class crash for PDFs
+            msg_history.append(UserMessage(content=content))
+
+            response = await call(MedNemoAgent, msg_history)
+            msg_history = response.message_history.copy()
+
+            await chat_ui.send_message(HILMessage(content=response.content))
+            await chat_ui.update_tools(response.tool_invocations[last_tool_idx:])
+            last_tool_idx = len(response.tool_invocations)
+
+        except Exception as e:
+            # Send error to chat but DON'T crash the session
+            try:
+                await chat_ui.send_message(
+                    HILMessage(content=f"⚠️ An error occurred: {e}")
+                )
+            except Exception:
+                pass
+
+    return "Session ended."
 
 
 if __name__ == "__main__":
-    # Usage: python agent.py <user_id> [session_id]
     user_id = sys.argv[1] if len(sys.argv) > 1 else "demo-user"
     session_id = sys.argv[2] if len(sys.argv) > 2 else ""
 

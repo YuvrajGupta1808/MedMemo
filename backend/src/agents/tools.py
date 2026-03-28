@@ -47,47 +47,30 @@ def list_patient_sessions() -> str:
 
 
 @rt.function_node
-def ingest_document(file_name: str, file_data: str = "", file_path: str = "", file_type: str = "") -> str:
+def ingest_document(file_path: str, file_type: str = "") -> str:
     """Ingest a medical document (PDF, JPEG, PNG) into the current patient session.
-
-    Supports two modes:
-    - **Base64 mode** (chat attachments): provide `file_name` and `file_data` (base64-encoded
-      content, optionally with a data URI prefix like "data:application/pdf;base64,").
-    - **File path mode** (legacy/disk): provide `file_name` and `file_path` (absolute path on disk).
-
     Args:
-        file_name: The filename (e.g. "report.pdf"). Used for storage and to auto-detect file_type.
-        file_data: Base64-encoded file content from chat attachments. May include a data URI prefix.
-        file_path: Absolute path to the document on disk (fallback when file_data is not provided).
-        file_type: One of 'pdf', 'jpeg', or 'png'. Auto-detected from file_name extension if omitted.
+        file_path: Absolute path to the document on disk.
+        file_type: One of 'pdf', 'jpeg', or 'png'. Auto-detected from extension if omitted.
     Returns:
         Confirmation with the number of pages ingested.
     """
     try:
-        # Auto-detect file_type from extension if not provided
         if not file_type:
-            ext = os.path.splitext(file_name)[1].lower().lstrip(".")
+            ext = os.path.splitext(file_path)[1].lower().lstrip(".")
             ext_map = {"pdf": "pdf", "jpg": "jpeg", "jpeg": "jpeg", "png": "png"}
             file_type = ext_map.get(ext, "")
             if not file_type:
-                return f"Error in ingest_document: cannot detect file type from '{file_name}'. Provide file_type explicitly."
+                return f"Error: cannot detect file type from '{file_path}'. Provide file_type explicitly."
 
-        # Get file bytes from either base64 data or disk path
-        if file_data:
-            # Strip data URI prefix if present (e.g. "data:application/pdf;base64,...")
-            if file_data.startswith("data:"):
-                file_data = file_data.split(",", 1)[-1]
-            file_bytes = base64.b64decode(file_data)
-        elif file_path:
-            with open(file_path, "rb") as f:
-                file_bytes = f.read()
-        else:
-            return "Error in ingest_document: provide either file_data (base64) or file_path."
-
+        file_name = os.path.basename(file_path)
         user_id = rt.context.get("user_id")
         session_id = rt.context.get("session_id")
         user = db.get_or_create_user(user_id)
         internal_uid = user["id"]
+
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
 
         content_type = {"pdf": "application/pdf", "jpeg": "image/jpeg", "png": "image/png"}[file_type]
         storage_path = db.upload_file(file_bytes, file_name, content_type, internal_uid, session_id)
