@@ -25,12 +25,6 @@ export interface IngestResponse {
   total_pages: number;
 }
 
-export interface QueryResponse {
-  answer: string;
-  session_id: string;
-  pages: { document_id: string; page_number: number; [key: string]: unknown }[];
-}
-
 export interface UploadAudioResponse {
   storage_path: string;
   audio_url: string;
@@ -43,22 +37,6 @@ export interface TranscribeResponse {
   segments: { timestamp: string; speaker: string; text: string }[];
   audio_url: string;
   created_at: string;
-}
-
-// ---------- Sessions ----------
-
-export async function apiCreateSession(user_id: string, name: string) {
-  return apiFetch<Record<string, unknown>>('/sessions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id, name }),
-  });
-}
-
-export async function apiDeleteSession(session_id: string) {
-  return apiFetch<{ deleted: boolean; session_id: string }>(`/sessions/${session_id}`, {
-    method: 'DELETE',
-  });
 }
 
 // ---------- Ingest ----------
@@ -74,16 +52,6 @@ export async function apiIngestFiles(files: File[], user_id: string, session_id:
 export async function apiDeleteDocument(document_id: string) {
   return apiFetch<{ deleted: boolean; document_id: string }>(`/ingest/documents/${document_id}`, {
     method: 'DELETE',
-  });
-}
-
-// ---------- Query ----------
-
-export async function apiQuery(text: string, session_id: string, limit = 3): Promise<QueryResponse> {
-  return apiFetch<QueryResponse>('/query', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, session_id, limit }),
   });
 }
 
