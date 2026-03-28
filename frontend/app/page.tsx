@@ -55,7 +55,7 @@ export default function LandingPage() {
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 leading-[1.1] mb-6">
               Your patients&apos; history,<br />
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <span className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent [-webkit-background-clip:text]">
                 always remembered.
               </span>
             </h1>
@@ -89,6 +89,7 @@ export default function LandingPage() {
             id="hero-stats"
             title="Platform Overview"
             description="Real-time metrics from MedNemo"
+            className="w-full"
             stats={[
               {
                 key: 'patients',
@@ -233,17 +234,17 @@ export default function LandingPage() {
 /* ---------- Helper Components ---------- */
 
 function FeatureCard({ icon, color, title, description }: { icon: React.ReactNode; color: string; title: string; description: string }) {
-  const colorMap: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-700',
-    purple: 'bg-purple-50 text-purple-700',
-    indigo: 'bg-indigo-50 text-indigo-700',
-    emerald: 'bg-emerald-50 text-emerald-700',
-    cyan: 'bg-cyan-50 text-cyan-700',
-    amber: 'bg-amber-50 text-amber-700',
+  const iconColors: Record<string, string> = {
+    blue: 'bg-blue-100 text-blue-700',
+    purple: 'bg-purple-100 text-purple-700',
+    indigo: 'bg-indigo-100 text-indigo-700',
+    emerald: 'bg-emerald-100 text-emerald-700',
+    cyan: 'bg-cyan-100 text-cyan-700',
+    amber: 'bg-amber-100 text-amber-700',
   };
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-md hover:border-slate-300 transition-all group">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${colorMap[color] || colorMap.blue}`}>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 shrink-0 ${iconColors[color] || iconColors.blue}`} aria-hidden="true">
         {icon}
       </div>
       <h3 className="text-base font-semibold text-slate-900 mb-2 group-hover:text-blue-700 transition-colors">{title}</h3>

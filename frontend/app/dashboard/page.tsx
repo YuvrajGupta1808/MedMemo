@@ -161,6 +161,7 @@ export default function DashboardPage() {
             <div className="mb-6">
               <StatsDisplay
                 id="dashboard-stats"
+                className="w-full"
                 stats={[
                   {
                     key: 'total-patients',

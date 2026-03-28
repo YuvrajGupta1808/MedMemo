@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, ReactNode } from 'react';
+import React, { useState, useEffect, useRef, ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   User,
@@ -14,6 +14,12 @@ import {
   LayoutDashboard,
   AlertCircle,
   RefreshCw,
+  Search,
+  Loader2,
+  CheckCircle2,
+  Trash2,
+  Plus,
+  Upload,
 } from 'lucide-react';
 import Link from 'next/link';
 import Chatbot from '@/components/Chatbot';
@@ -31,11 +37,22 @@ import {
   type Document,
   type Note,
 } from '@/lib/supabase';
+import {
+  apiCreateSession,
+  apiDeleteSession,
+  apiIngestFiles,
+  apiDeleteDocument,
+  apiQuery,
+  apiUploadAudio,
+  apiTranscribe,
+  type IngestResult,
+  type QueryResponse,
+} from '@/lib/api';
 
 export default function PatientPage() {
   const { id } = useParams();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'sessions' | 'notes'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'sessions' | 'notes' | 'query'>('overview');
   const [user, setUser] = useState<Patient | null>(null);
   const [userSessions, setUserSessions] = useState<Session[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -69,11 +86,14 @@ export default function PatientPage() {
     }
   }
 
+  const reload = () => loadPatientData(id as string);
+
   const tabs = [
     { key: 'overview' as const, label: 'Overview', icon: <User size={16} /> },
     { key: 'documents' as const, label: 'Documents', icon: <FileText size={16} /> },
     { key: 'sessions' as const, label: 'Sessions', icon: <Mic size={16} /> },
     { key: 'notes' as const, label: 'Notes', icon: <ClipboardList size={16} /> },
+    { key: 'query' as const, label: 'Query', icon: <Search size={16} /> },
   ];
 
   return (
@@ -197,13 +217,16 @@ export default function PatientPage() {
                   <OverviewPanel user={user} sessions={userSessions} documents={documents} notes={notes} />
                 )}
                 {activeTab === 'documents' && (
-                  <DocumentsPanel documents={documents} />
+                  <DocumentsPanel documents={documents} sessions={userSessions} user={user} reload={reload} />
                 )}
                 {activeTab === 'sessions' && (
-                  <SessionsPanel sessions={userSessions} />
+                  <SessionsPanel sessions={userSessions} user={user} reload={reload} />
                 )}
                 {activeTab === 'notes' && (
-                  <NotesPanel notes={notes} />
+                  <NotesPanel notes={notes} sessions={userSessions} user={user} reload={reload} />
+                )}
+                {activeTab === 'query' && (
+                  <QueryPanel sessions={userSessions} />
                 )}
               </div>
             </div>
@@ -272,7 +295,7 @@ function OverviewPanel({ user, sessions, documents, notes }: { user: Patient; se
         title={`${user.external_id} — Overview`}
         description={`Patient since ${new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`}
         stats={stats}
-        className="max-w-full"
+        className="w-full"
       />
 
       {/* Documents Table — tool-ui component */}
