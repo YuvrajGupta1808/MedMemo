@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   User,
   Mic,
+  MicOff,
   FileText,
   ClipboardList,
   Sparkles,
@@ -491,18 +492,21 @@ function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions
   const [actionError, setActionError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const audioRef = useRef<HTMLInputElement>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recSeconds, setRecSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function handleUploadAndTranscribe() {
-    const file = audioRef.current?.files?.[0];
-    if (!file || !sessionId) return;
+  async function runUploadAndTranscribe(file: File) {
+    if (!sessionId) return;
     setActionError(null);
     setSuccess(false);
     try {
       setStep('uploading');
       const uploadRes = await apiUploadAudio(file, user.external_id, sessionId);
       setStep('transcribing');
-      await apiTranscribe(uploadRes.storage_path, user.external_id, sessionId, file.type || 'audio/mpeg');
-      if (audioRef.current) audioRef.current.value = '';
+      await apiTranscribe(uploadRes.storage_path, user.external_id, sessionId, file.type || 'audio/webm');
       setSuccess(true);
       reload();
     } catch (err) {
@@ -512,26 +516,103 @@ function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions
     }
   }
 
+  async function handleUploadAndTranscribe() {
+    const file = audioRef.current?.files?.[0];
+    if (!file || !sessionId) return;
+    if (audioRef.current) audioRef.current.value = '';
+    await runUploadAndTranscribe(file);
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (timerRef.current) clearInterval(timerRef.current);
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const file = new File([blob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
+        setIsRecording(false);
+        setRecSeconds(0);
+        await runUploadAndTranscribe(file);
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setRecSeconds(0);
+      setIsRecording(true);
+      timerRef.current = setInterval(() => setRecSeconds((s) => s + 1), 1000);
+    } catch {
+      setActionError('Microphone access denied. Please allow mic access and try again.');
+    }
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop();
+  }
+
+  function formatTime(s: number) {
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Upload audio section */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5">
         <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2"><Mic size={14} /> Record / Upload Audio</h3>
+
+        {/* Live Record Button */}
+        <div className="flex flex-col items-center gap-3 py-4">
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={step !== 'idle'}
+            className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all focus-ring disabled:opacity-50 ${
+              isRecording
+                ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-200'
+                : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200'
+            }`}
+            aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+          >
+            {isRecording && (
+              <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-50" />
+            )}
+            {isRecording ? <MicOff size={32} className="text-white relative z-10" /> : <Mic size={32} className="text-white relative z-10" />}
+          </button>
+          <div className="text-center">
+            {isRecording ? (
+              <p className="text-sm font-semibold text-red-600">Recording… {formatTime(recSeconds)}</p>
+            ) : step !== 'idle' ? (
+              <p className="text-sm font-medium text-blue-600 flex items-center gap-1.5"><Loader2 size={14} className="animate-spin" />{step === 'uploading' ? 'Uploading…' : 'Transcribing…'}</p>
+            ) : (
+              <p className="text-sm text-slate-500">Tap to record a session</p>
+            )}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 text-xs text-slate-400 my-2">
+          <div className="flex-1 h-px bg-slate-200" />
+          <span>or upload a file</span>
+          <div className="flex-1 h-px bg-slate-200" />
+        </div>
+
+        {/* Existing file picker */}
         {!sessionId ? (
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Loader2 size={14} className="animate-spin" /> Loading session…
           </div>
         ) : (
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-600">Audio file</label>
-            <input ref={audioRef} type="file" accept="audio/*" className="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:text-sm file:font-medium" />
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Audio file</label>
+              <input ref={audioRef} type="file" accept="audio/*" className="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:text-sm file:font-medium" />
+            </div>
+            <button onClick={handleUploadAndTranscribe} disabled={step !== 'idle' || isRecording} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              {step !== 'idle' && <Loader2 size={14} className="animate-spin" />}
+              {step === 'uploading' ? 'Uploading…' : step === 'transcribing' ? 'Transcribing…' : 'Upload & Transcribe'}
+            </button>
           </div>
-          <button onClick={handleUploadAndTranscribe} disabled={step !== 'idle'} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
-            {step !== 'idle' && <Loader2 size={14} className="animate-spin" />}
-            {step === 'uploading' ? 'Uploading…' : step === 'transcribing' ? 'Transcribing…' : 'Upload & Transcribe'}
-          </button>
-        </div>
         )}
         {success && (
           <div className="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
