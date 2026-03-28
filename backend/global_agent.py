@@ -4,6 +4,7 @@ import sys
 
 import railtracks as rt
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 logger = logging.getLogger("RT.mednemo.global")
 
@@ -78,6 +79,13 @@ Important:
 async def global_mednemo_chat():
     """Start an interactive chat session with the full MedNemo agent."""
     chat_ui = ChatUI(port=7001, auto_open=False)
+    chat_ui.app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     await chat_ui.connect()
     logger.info("Global Chat UI connected")
     await rt.broadcast("Chat UI connected")

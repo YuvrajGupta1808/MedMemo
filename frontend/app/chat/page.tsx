@@ -32,6 +32,7 @@ export default function ChatPage() {
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, setInput } = useRailtracksChat({
     apiEndpoint: '/api/agent-global',
+    agentUrl: process.env.NEXT_PUBLIC_AGENT_GLOBAL_URL ?? 'http://localhost:7001',
   });
 
   const hasMessages = messages.length > 0;

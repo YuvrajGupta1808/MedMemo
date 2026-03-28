@@ -17,24 +17,4 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
-  try {
-    const res = await fetch(`${AGENT_URL}/events`, {
-      headers: { 'Accept': 'text/event-stream', 'Cache-Control': 'no-cache' },
-    });
 
-    if (!res.ok || !res.body) {
-      return new Response('Agent not available', { status: 502 });
-    }
-
-    return new Response(res.body, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
-  } catch (e: any) {
-    return new Response(`Agent connection failed: ${e.message}`, { status: 502 });
-  }
-}

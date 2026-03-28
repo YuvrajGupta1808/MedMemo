@@ -20,16 +20,18 @@ export interface RailtracksToolInvocation {
 }
 
 interface UseRailtracksChatOptions {
+  /** Next.js proxy endpoint for POST /send_message (e.g. '/api/agent') */
   apiEndpoint: string;
+  /** Direct agent SSE URL (e.g. 'http://localhost:7001') */
+  agentUrl: string;
 }
 
-export function useRailtracksChat({ apiEndpoint }: UseRailtracksChatOptions) {
+export function useRailtracksChat({ apiEndpoint, agentUrl }: UseRailtracksChatOptions) {
   const [messages, setMessages] = useState<RailtracksMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const pendingToolsRef = useRef<RailtracksToolInvocation[]>([]);
   const messageIdRef = useRef(0);
 
   const nextId = useCallback(() => {
@@ -37,42 +39,17 @@ export function useRailtracksChat({ apiEndpoint }: UseRailtracksChatOptions) {
     return `msg-${messageIdRef.current}`;
   }, []);
 
-  // Connect to SSE stream
+  // Connect SSE directly to agent
   useEffect(() => {
-    const es = new EventSource(apiEndpoint);
+    const es = new EventSource(`${agentUrl}/events`);
     eventSourceRef.current = es;
 
-    es.onopen = () => {
-      setIsConnected(true);
-    };
-
-    es.onerror = () => {
-      setIsConnected(false);
-    };
+    es.onopen = () => setIsConnected(true);
+    es.onerror = () => setIsConnected(false);
 
     es.onmessage = (event) => {
       try {
         const parsed = JSON.parse(event.data);
-
-        if (parsed.type === 'assistant_response') {
-          // Collect pending tool invocations and attach to this message
-          const toolInvocations = pendingToolsRef.current.length > 0
-            ? [...pendingToolsRef.current]
-            : undefined;
-          pendingToolsRef.current = [];
-
-          setMessages(prev => [
-            ...prev,
-            {
-              id: nextId(),
-              role: 'assistant' as const,
-              content: parsed.data || '',
-              timestamp: parsed.timestamp,
-              toolInvocations,
-            },
-          ]);
-          setIsLoading(false);
-        }
 
         if (parsed.type === 'tool_invoked') {
           const tool = parsed.data;
@@ -85,16 +62,56 @@ export function useRailtracksChat({ apiEndpoint }: UseRailtracksChatOptions) {
             args = { raw: tool.arguments };
           }
 
-          pendingToolsRef.current.push({
+          const invocation: RailtracksToolInvocation = {
             toolCallId: tool.identifier || `tool-${Date.now()}-${Math.random().toString(36).slice(2)}`,
             toolName: tool.name,
             args,
             result: tool.result,
             success: tool.success,
-            state: 'result' as const,
+            state: 'result',
+          };
+
+          // Show tool invocation IMMEDIATELY
+          setMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last && last.role === 'assistant' && !last.content && last.toolInvocations) {
+              const updated = [...prev];
+              updated[updated.length - 1] = {
+                ...last,
+                toolInvocations: [...last.toolInvocations, invocation],
+              };
+              return updated;
+            }
+            return [...prev, {
+              id: nextId(),
+              role: 'assistant' as const,
+              content: '',
+              toolInvocations: [invocation],
+            }];
           });
         }
-        // heartbeat events are ignored
+
+        if (parsed.type === 'assistant_response') {
+          setMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last && last.role === 'assistant' && !last.content && last.toolInvocations) {
+              const updated = [...prev];
+              updated[updated.length - 1] = {
+                ...last,
+                content: parsed.data || '',
+                timestamp: parsed.timestamp,
+              };
+              return updated;
+            }
+            return [...prev, {
+              id: nextId(),
+              role: 'assistant' as const,
+              content: parsed.data || '',
+              timestamp: parsed.timestamp,
+            }];
+          });
+          setIsLoading(false);
+        }
       } catch (e) {
         console.error('SSE parse error:', e);
       }
@@ -104,13 +121,12 @@ export function useRailtracksChat({ apiEndpoint }: UseRailtracksChatOptions) {
       es.close();
       eventSourceRef.current = null;
     };
-  }, [apiEndpoint, nextId]);
+  }, [agentUrl, nextId]);
 
   const sendMessage = useCallback(async (content?: string) => {
     const text = content ?? input;
     if (!text.trim()) return;
 
-    // Add user message to state
     setMessages(prev => [
       ...prev,
       { id: nextId(), role: 'user' as const, content: text },

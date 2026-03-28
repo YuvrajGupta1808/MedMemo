@@ -19,6 +19,7 @@ export default function Chatbot({ patientName }: ChatbotProps) {
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, isConnected } = useRailtracksChat({
     apiEndpoint: '/api/agent-global',
+    agentUrl: process.env.NEXT_PUBLIC_AGENT_GLOBAL_URL ?? 'http://localhost:7001',
   });
 
   // Auto-scroll to bottom on new messages

@@ -31,6 +31,7 @@ export default function PatientChat({ patientName, patientId }: PatientChatProps
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, isConnected } = useRailtracksChat({
     apiEndpoint: '/api/agent',
+    agentUrl: process.env.NEXT_PUBLIC_AGENT_URL ?? 'http://localhost:7002',
   });
 
   useEffect(() => {
