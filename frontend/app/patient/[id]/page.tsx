@@ -363,6 +363,7 @@ function DocumentsPanel({ documents, sessions, user, reload }: { documents: Docu
       const res = await apiIngestFiles(Array.from(files), user.external_id, sessionId);
       setUploadResults(res.results);
       if (fileRef.current) fileRef.current.value = '';
+      setFileCount(0);
       reload();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Upload failed');
@@ -385,8 +386,7 @@ function DocumentsPanel({ documents, sessions, user, reload }: { documents: Docu
   const processingDocs = documents.filter((d) => d.status === 'processing' || d.status === 'pending');
 
   const [dragOver, setDragOver] = useState(false);
-  const selectedFiles = fileRef.current?.files;
-  const fileCount = selectedFiles?.length ?? 0;
+  const [fileCount, setFileCount] = useState(0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -445,8 +445,8 @@ function DocumentsPanel({ documents, sessions, user, reload }: { documents: Docu
               multiple
               className="hidden"
               onChange={() => {
-                // force re-render for file count
                 setDragOver(false);
+                setFileCount(fileRef.current?.files?.length ?? 0);
               }}
               aria-label="Select files"
             />
