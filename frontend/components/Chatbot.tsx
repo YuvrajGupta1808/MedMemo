@@ -3,9 +3,9 @@
 import React, { useRef, useEffect } from 'react';
 import { useChat } from 'ai/react';
 import {
-  Sparkles,
   ArrowUp,
   Loader2,
+  Stethoscope,
 } from 'lucide-react';
 
 interface ChatbotProps {
@@ -39,10 +39,10 @@ export default function Chatbot({ patientName }: ChatbotProps) {
       {/* Header */}
       <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-3 bg-white shrink-0">
         <div
-          className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white"
+          className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white font-bold text-sm tracking-tight"
           aria-hidden="true"
         >
-          <Sparkles size={14} />
+          M
         </div>
         <div>
           <h2 className="text-sm font-semibold text-slate-900">AI Assistant</h2>
@@ -65,8 +65,8 @@ export default function Chatbot({ patientName }: ChatbotProps) {
       >
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
-              <Sparkles size={24} />
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mb-3">
+              <Stethoscope size={24} />
             </div>
             <p className="text-sm font-medium text-slate-900 mb-1">No messages yet</p>
             <p className="text-xs text-slate-600">
