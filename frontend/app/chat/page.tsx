@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { useChat } from 'ai/react';
+import { useRailtracksChat } from '@/hooks/useRailtracksChat';
+import { ToolCallRenderer } from '@/components/chat/tools/ToolCallRenderer';
 import {
   ArrowUp,
   Loader2,
@@ -29,8 +30,8 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput } = useChat({
-    api: '/api/chat',
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput } = useRailtracksChat({
+    apiEndpoint: '/api/agent-global',
   });
 
   const hasMessages = messages.length > 0;
@@ -171,6 +172,11 @@ export default function ChatPage() {
                       : 'text-slate-800'
                   }`}>
                     {m.content}
+                    {(m as any).toolInvocations?.map((inv: any) => (
+                      <div key={inv.toolCallId} className="mt-2">
+                        <ToolCallRenderer invocation={inv} />
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
