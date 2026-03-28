@@ -50,7 +50,9 @@ The user_id and session_id are already set in your context — you do not need t
 async def mednemo_chat():
     """Start an interactive chat session with MedNemo in the browser."""
     response = await rt.interactive.local_chat(MedNemoAgent)
-    return response.message_history
+    if response is None:
+        return "Session ended."
+    return response
 
 
 if __name__ == "__main__":
