@@ -19,9 +19,10 @@ import { ToolCallRenderer } from './tools/ToolCallRenderer';
 interface PatientChatProps {
   patientName: string;
   patientId: string;
+  sessionId?: string;
 }
 
-export default function PatientChat({ patientName, patientId }: PatientChatProps) {
+export default function PatientChat({ patientName, patientId, sessionId }: PatientChatProps) {
   const { attachments, addAttachment, removeAttachment, clearAttachments } = useChatPanel();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -32,6 +33,7 @@ export default function PatientChat({ patientName, patientId }: PatientChatProps
   const { messages, input, handleInputChange, handleSubmit, isLoading, isConnected } = useRailtracksChat({
     apiEndpoint: '/api/agent',
     agentUrl: process.env.NEXT_PUBLIC_AGENT_URL ?? 'http://localhost:7002',
+    context: { patientId, patientName, sessionId },
   });
 
   useEffect(() => {

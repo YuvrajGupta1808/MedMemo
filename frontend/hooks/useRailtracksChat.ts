@@ -24,9 +24,11 @@ interface UseRailtracksChatOptions {
   apiEndpoint: string;
   /** Direct agent SSE URL (e.g. 'http://localhost:7001') */
   agentUrl: string;
+  /** Optional context to include with every message (e.g. patientId, sessionId) */
+  context?: Record<string, unknown>;
 }
 
-export function useRailtracksChat({ apiEndpoint, agentUrl }: UseRailtracksChatOptions) {
+export function useRailtracksChat({ apiEndpoint, agentUrl, context }: UseRailtracksChatOptions) {
   const [messages, setMessages] = useState<RailtracksMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -138,7 +140,7 @@ export function useRailtracksChat({ apiEndpoint, agentUrl }: UseRailtracksChatOp
       await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: text }),
+        body: JSON.stringify({ content: text, context }),
       });
     } catch (e) {
       console.error('Send message error:', e);

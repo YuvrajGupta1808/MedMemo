@@ -241,7 +241,7 @@ export default function PatientPage() {
         {/* Right Sidebar — Resizable Patient Chat */}
         {showChat && user && (
           <ResizableChatPanel defaultWidth={380} minWidth={300} maxWidth={600}>
-            <PatientChat patientName={user.external_id} patientId={user.id} />
+            <PatientChat patientName={user.external_id} patientId={user.id} sessionId={userSessions[0]?.id} />
           </ResizableChatPanel>
         )}
       </main>
