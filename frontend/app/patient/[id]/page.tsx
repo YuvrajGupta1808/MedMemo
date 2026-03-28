@@ -15,9 +15,12 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
+import Link from 'next/link';
 import Chatbot from '@/components/Chatbot';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
 import { DataTable } from '@/components/tool-ui/data-table/data-table';
+import { ProgressTracker } from '@/components/tool-ui/progress-tracker/progress-tracker';
+import { CitationList } from '@/components/tool-ui/citation/citation-list';
 import {
   fetchUser,
   fetchSessions,
@@ -79,20 +82,22 @@ export default function PatientPage() {
       <header className="h-16 bg-white px-4 sm:px-6 flex items-center justify-between border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/dashboard')}
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600 focus-ring"
             aria-label="Back to dashboard"
           >
             <ChevronLeft size={20} />
           </button>
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg" aria-hidden="true">
-            +
-          </div>
-          <span className="text-lg font-bold tracking-tight">MedNemo</span>
+          <Link href="/" className="flex items-center gap-2 focus-ring rounded-lg">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg" aria-hidden="true">
+              +
+            </div>
+            <span className="text-lg font-bold tracking-tight">MedNemo</span>
+          </Link>
         </div>
 
         <nav aria-label="Main navigation" className="hidden sm:flex items-center gap-1 bg-slate-50 p-1 rounded-full border border-slate-200">
-          <NavItem icon={<LayoutDashboard size={16} />} label="Dashboard" active={false} onClick={() => router.push('/')} />
+          <NavItem icon={<LayoutDashboard size={16} />} label="Dashboard" active={false} onClick={() => router.push('/dashboard')} />
           <NavItem icon={<User size={16} />} label="Patients" active={true} onClick={() => {}} />
         </nav>
 
@@ -320,6 +325,8 @@ function DocumentsPanel({ documents }: { documents: Document[] }) {
     );
   }
 
+  const processingDocs = documents.filter((d) => d.status === 'processing' || d.status === 'pending');
+
   const tableData = documents.map((d) => ({
     name: d.file_name,
     type: d.file_type.toUpperCase(),
@@ -329,19 +336,42 @@ function DocumentsPanel({ documents }: { documents: Document[] }) {
   }));
 
   return (
-    <DataTable
-      id="all-documents"
-      columns={[
-        { key: 'name', label: 'File Name', priority: 'primary' },
-        { key: 'type', label: 'Type' },
-        { key: 'pages', label: 'Pages', format: { kind: 'number' }, align: 'right' },
-        { key: 'status', label: 'Status' },
-        { key: 'date', label: 'Date' },
-      ]}
-      data={tableData}
-      defaultSort={{ by: 'date', direction: 'desc' }}
-      emptyMessage="No documents uploaded yet."
-    />
+    <div className="flex flex-col gap-6">
+      {/* Show ProgressTracker for documents being processed */}
+      {processingDocs.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">Processing Pipeline</h3>
+          {processingDocs.map((doc) => (
+            <div key={doc.id} className="mb-4">
+              <ProgressTracker
+                id={`doc-progress-${doc.id}`}
+                steps={[
+                  { id: 'upload', label: 'Uploaded', description: doc.file_name, status: 'completed' },
+                  { id: 'extract', label: 'Text Extraction', description: 'OCR and content parsing', status: doc.status === 'processing' ? 'in-progress' : 'pending' },
+                  { id: 'embed', label: 'Embedding', description: 'Generating vector embeddings', status: 'pending' },
+                  { id: 'index', label: 'Indexed', description: 'Ready for semantic search', status: 'pending' },
+                ]}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Full documents table */}
+      <DataTable
+        id="all-documents"
+        columns={[
+          { key: 'name', label: 'File Name', priority: 'primary' },
+          { key: 'type', label: 'Type' },
+          { key: 'pages', label: 'Pages', format: { kind: 'number' }, align: 'right' },
+          { key: 'status', label: 'Status' },
+          { key: 'date', label: 'Date' },
+        ]}
+        data={tableData}
+        defaultSort={{ by: 'date', direction: 'desc' }}
+        emptyMessage="No documents uploaded yet."
+      />
+    </div>
   );
 }
 
@@ -388,7 +418,7 @@ function NotesPanel({ notes }: { notes: Note[] }) {
     );
   }
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {notes.map((note) => (
         <div key={note.id} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between mb-3">
@@ -402,22 +432,30 @@ function NotesPanel({ notes }: { notes: Note[] }) {
               <Download size={12} aria-hidden="true" /> Export
             </button>
           </div>
+
+          {/* Summary */}
           <h3 className="text-sm font-semibold text-slate-900 mb-2">Summary</h3>
           <p className="text-sm text-slate-700 leading-relaxed mb-4">{note.summary}</p>
+
+          {/* Transcript segments as CitationList */}
           {note.segments.length > 0 && (
-            <details className="group">
-              <summary className="text-xs font-medium text-blue-700 cursor-pointer hover:underline focus-ring rounded px-1">
-                View transcript ({note.segments.length} segments)
-              </summary>
-              <div className="mt-3 flex flex-col gap-2 pl-4 border-l-2 border-slate-100">
-                {note.segments.map((seg, i) => (
-                  <div key={i} className="text-sm">
-                    <span className="text-xs font-medium text-slate-500">{seg.timestamp} — {seg.speaker}</span>
-                    <p className="text-slate-700">{seg.text}</p>
-                  </div>
-                ))}
-              </div>
-            </details>
+            <div className="border-t border-slate-100 pt-4">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                Transcript Sources ({note.segments.length} segments)
+              </p>
+              <CitationList
+                id={`note-citations-${note.id}`}
+                variant="stacked"
+                citations={note.segments.map((seg, i) => ({
+                  id: `${note.id}-seg-${i}`,
+                  title: `${seg.speaker} — ${seg.timestamp}`,
+                  domain: 'transcript',
+                  href: `https://mednemo.local/transcript/${note.id}#seg-${i}`,
+                  type: 'document' as const,
+                  snippet: seg.text,
+                }))}
+              />
+            </div>
           )}
         </div>
       ))}
