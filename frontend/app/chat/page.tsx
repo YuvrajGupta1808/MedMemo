@@ -12,10 +12,10 @@ import {
   FileText,
   Trash2,
   ChevronLeft,
-  Bot,
-  Stethoscope,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
+import { MedMemoLogo } from '@/components/MedMemoLogo';
 import { useChatPanel, type ChatAttachment } from '@/components/chat/ChatProvider';
 
 export default function ChatPage() {
@@ -107,10 +107,8 @@ export default function ChatPage() {
             <ChevronLeft size={18} />
           </Link>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-xl bg-slate-900 flex items-center justify-center text-white font-bold text-xs tracking-tight" aria-hidden="true">
-              M
-            </div>
-            <span className="text-sm font-semibold text-slate-900">MedNemo AI</span>
+            <MedMemoLogo size={28} />
+            <span className="text-sm font-semibold text-slate-900">MedMemo AI</span>
           </div>
         </div>
         {isLoading && (
@@ -126,9 +124,7 @@ export default function ChatPage() {
         {!hasMessages ? (
           /* ── Empty state: Gemini-style centered hero ── */
           <div className="flex-1 flex flex-col items-center justify-center px-4">
-            <div className="w-16 h-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-6">
-              <Stethoscope size={28} className="text-slate-600" />
-            </div>
+            <MedMemoLogo size={64} className="rounded-3xl mb-6" />
             <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-2 text-center">
               What can I help with?
             </h1>
@@ -158,8 +154,8 @@ export default function ChatPage() {
               {messages.map((m) => (
                 <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {m.role === 'assistant' && (
-                    <div className="w-7 h-7 rounded-xl bg-slate-800 flex items-center justify-center text-white shrink-0 mt-1 mr-3" aria-hidden="true">
-                      <Bot size={13} />
+                    <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 mt-1 mr-3" aria-hidden="true">
+                      <Sparkles size={13} />
                     </div>
                   )}
                   <div className={`max-w-[80%] text-[15px] leading-relaxed ${
@@ -173,8 +169,8 @@ export default function ChatPage() {
               ))}
               {isLoading && (
                 <div className="flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-xl bg-slate-800 flex items-center justify-center text-white shrink-0" aria-hidden="true">
-                    <Bot size={13} />
+                  <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0" aria-hidden="true">
+                    <Sparkles size={13} />
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-500 pt-1">
                     <Loader2 size={14} className="animate-spin" />
@@ -205,7 +201,7 @@ export default function ChatPage() {
               </button>
               <textarea
                 ref={inputRef}
-                placeholder={isRecording ? 'Recording audio…' : 'Ask MedNemo anything…'}
+                placeholder={isRecording ? 'Recording audio…' : 'Ask MedMemo anything…'}
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSubmit(e); } }}

@@ -7,7 +7,7 @@ import {
   Mic,
   FileText,
   ClipboardList,
-  MessageCircle,
+  Sparkles,
   Download,
   Brain,
   ChevronLeft,
@@ -23,6 +23,8 @@ import {
 import Link from 'next/link';
 import { useChatPanel } from '@/components/chat';
 import PatientChat from '@/components/chat/PatientChat';
+import ResizableChatPanel from '@/components/chat/ResizableChatPanel';
+import { MedMemoLogo } from '@/components/MedMemoLogo';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
 import { DataTable } from '@/components/tool-ui/data-table/data-table';
 import { ProgressTracker } from '@/components/tool-ui/progress-tracker/progress-tracker';
@@ -37,6 +39,7 @@ import {
 } from '@/lib/supabase';
 import {
   apiGetSessions,
+  apiCreateSession,
   apiIngestFiles,
   apiDeleteDocument,
   apiUploadAudio,
@@ -79,7 +82,11 @@ export default function PatientPage() {
         fetchDocumentsForUser(userId),
         fetchNotesForUser(userId),
       ]);
-      const sessionsData = await apiGetSessions(userData.external_id);
+      let sessionsData = await apiGetSessions(userData.external_id);
+      if (sessionsData.length === 0) {
+        await apiCreateSession(userData.external_id, userData.external_id);
+        sessionsData = await apiGetSessions(userData.external_id);
+      }
       setUser(userData);
       setUserSessions(sessionsData);
       setDocuments(docsData);
@@ -112,10 +119,8 @@ export default function PatientPage() {
             <ChevronLeft size={20} />
           </button>
           <Link href="/" className="flex items-center gap-2 focus-ring rounded-lg">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg" aria-hidden="true">
-              +
-            </div>
-            <span className="text-lg font-bold tracking-tight">MedNemo</span>
+            <MedMemoLogo size={32} />
+            <span className="text-lg font-bold tracking-tight">MedMemo</span>
           </Link>
         </div>
 
@@ -131,7 +136,7 @@ export default function PatientPage() {
             aria-label="Open full AI chat"
             title="Open full chat"
           >
-            <MessageCircle size={20} />
+            <Sparkles size={20} />
           </Link>
           <button
             onClick={() => setShowChat(!showChat)}
@@ -238,11 +243,11 @@ export default function PatientPage() {
           ) : null}
         </div>
 
-        {/* Right Sidebar — Patient Chat */}
+        {/* Right Sidebar — Resizable Patient Chat */}
         {showChat && user && (
-          <aside className="hidden lg:flex w-[380px] bg-white border-l border-slate-200 flex-col shrink-0 overflow-hidden" aria-label="AI Assistant">
+          <ResizableChatPanel defaultWidth={380} minWidth={300} maxWidth={600}>
             <PatientChat patientName={user.external_id} patientId={user.id} />
-          </aside>
+          </ResizableChatPanel>
         )}
       </main>
     </div>
@@ -560,7 +565,7 @@ function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions
                     id: `${note.id}-seg-${i}`,
                     title: `${seg.speaker} — ${seg.timestamp}`,
                     domain: 'transcript',
-                    href: `https://mednemo.local/transcript/${note.id}#seg-${i}`,
+                    href: `https://medmemo.local/transcript/${note.id}#seg-${i}`,
                     type: 'document' as const,
                     snippet: seg.text,
                   }))}

@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   FileText,
   Trash2,
+  Sparkles,
 } from 'lucide-react';
 import { useChatPanel, type ChatAttachment } from './ChatProvider';
 
@@ -27,7 +28,7 @@ export default function PatientChat({ patientName, patientId }: PatientChatProps
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
     body: { context: { page: 'patient', patientId, patientName } },
     initialMessages: [
@@ -90,8 +91,8 @@ export default function PatientChat({ patientName, patientId }: PatientChatProps
     <div className="flex flex-col h-full bg-white" onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-3 shrink-0">
-        <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white font-bold text-sm tracking-tight shrink-0" aria-hidden="true">
-          M
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0" aria-hidden="true">
+          <Sparkles size={14} />
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-sm font-semibold text-slate-900 truncate">AI Assistant</h2>
@@ -101,38 +102,33 @@ export default function PatientChat({ patientName, patientId }: PatientChatProps
         </div>
       </div>
 
-      {/* Quick actions */}
-      {messages.length <= 1 && (
-        <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap gap-2">
-          {[
-            { label: '📄 Upload doc', action: () => fileInputRef.current?.click() },
-            { label: '🎙️ Record', action: toggleRecording },
-            { label: '🔍 Search', action: () => { setInput('Search records for '); inputRef.current?.focus(); } },
-            { label: '📋 Summary', action: () => { setInput(`Summarize ${patientName}`); inputRef.current?.focus(); } },
-          ].map((qa) => (
-            <button key={qa.label} onClick={qa.action} className="px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 active:bg-slate-300 transition-colors focus-ring">
-              {qa.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 custom-scrollbar" role="log" aria-label="Chat messages" aria-live="polite">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           {messages.map((m) => (
-            <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] px-4 py-3 text-sm leading-relaxed ${
-                m.role === 'user' ? 'bg-blue-600 text-white rounded-2xl rounded-br-md' : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-md'
+            <div key={m.id} className={`flex gap-2.5 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {m.role === 'assistant' && (
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 mt-0.5" aria-hidden="true">
+                  <Sparkles size={11} />
+                </div>
+              )}
+              <div className={`max-w-[80%] px-3.5 py-2.5 text-[13px] leading-relaxed ${
+                m.role === 'user'
+                  ? 'bg-slate-900 text-white rounded-2xl rounded-br-md'
+                  : 'bg-slate-50 text-slate-800 rounded-2xl rounded-bl-md border border-slate-100'
               }`}>
                 {m.content}
               </div>
             </div>
           ))}
           {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-slate-100 text-slate-500 rounded-2xl rounded-bl-md px-4 py-3 text-sm flex items-center gap-2">
-                <Loader2 size={14} className="animate-spin" aria-hidden="true" /> Thinking…
+            <div className="flex gap-2.5 justify-start">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0" aria-hidden="true">
+                <Sparkles size={11} />
+              </div>
+              <div className="bg-slate-50 text-slate-500 rounded-2xl rounded-bl-md border border-slate-100 px-3.5 py-2.5 text-[13px] flex items-center gap-2">
+                <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+                <span>Thinking…</span>
               </div>
             </div>
           )}

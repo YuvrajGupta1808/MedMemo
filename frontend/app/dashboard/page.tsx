@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { X, Loader2, MessageCircle } from 'lucide-react';
+import { X, Loader2, Sparkles } from 'lucide-react';
+import { MedMemoLogo } from '@/components/MedMemoLogo';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
 import { fetchUsers, fetchSessions, createUser, type Patient, type Session } from '@/lib/supabase';
 import { apiCreateSession } from '@/lib/api';
@@ -74,13 +75,8 @@ export default function DashboardPage() {
       {/* Top Navigation */}
       <header className="h-16 bg-white px-4 sm:px-6 flex items-center justify-between border-b border-slate-200 shrink-0">
         <Link href="/" className="flex items-center gap-2 focus-ring rounded-lg">
-          <div
-            className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-white font-bold text-sm tracking-tight"
-            aria-hidden="true"
-          >
-            M
-          </div>
-          <span className="text-lg font-bold tracking-tight">MedNemo</span>
+          <MedMemoLogo size={32} />
+          <span className="text-lg font-bold tracking-tight">MedMemo</span>
         </Link>
 
         <nav
@@ -107,7 +103,7 @@ export default function DashboardPage() {
             className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors focus-ring"
             aria-label="Open AI chat"
           >
-            <MessageCircle size={20} />
+            <Sparkles size={20} />
           </Link>
           <button
             className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors focus-ring"

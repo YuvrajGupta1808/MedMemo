@@ -8,12 +8,12 @@ import {
   Brain,
   FileText,
   Mic,
+  Sparkles,
   Zap,
   Lock,
   Activity,
-  Stethoscope,
-  MessageCircle,
 } from 'lucide-react';
+import { MedMemoLogo, MedMemoMark } from '@/components/MedMemoLogo';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
 import { ProgressTracker } from '@/components/tool-ui/progress-tracker/progress-tracker';
 import { CitationList } from '@/components/tool-ui/citation/citation-list';
@@ -25,10 +25,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-white font-bold text-sm tracking-tight" aria-hidden="true">
-              M
-            </div>
-            <span className="text-lg font-bold tracking-tight">MedNemo</span>
+            <MedMemoLogo size={32} />
+            <span className="text-lg font-bold tracking-tight">MedMemo</span>
           </div>
           <nav aria-label="Landing navigation" className="hidden sm:flex items-center gap-6">
             <a href="#features" className="text-sm text-slate-600 hover:text-slate-900 transition-colors focus-ring rounded px-1">Features</a>
@@ -40,7 +38,7 @@ export default function LandingPage() {
               href="/chat"
               className="hidden sm:flex items-center gap-1.5 text-sm text-slate-600 hover:text-blue-600 transition-colors focus-ring rounded px-2 py-1"
             >
-              <MessageCircle size={14} aria-hidden="true" />
+              <Sparkles size={14} aria-hidden="true" />
               Chat
             </Link>
             <Link
@@ -70,7 +68,7 @@ export default function LandingPage() {
               </span>
             </h1>
             <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-              MedNemo uses AI to ingest, organize, and recall medical records instantly.
+              MedMemo uses AI to ingest, organize, and recall medical records instantly.
               Upload documents, record sessions, and ask questions — all in one place.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -98,7 +96,7 @@ export default function LandingPage() {
           <StatsDisplay
             id="hero-stats"
             title="Platform Overview"
-            description="Real-time metrics from MedNemo"
+            description="Real-time metrics from MedMemo"
             className="w-full"
             stats={[
               {
@@ -181,7 +179,7 @@ export default function LandingPage() {
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Every answer has a source</h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            MedNemo cites every document it references — fully traceable, fully auditable.
+            MedMemo cites every document it references — fully traceable, fully auditable.
           </p>
         </div>
         <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
@@ -213,7 +211,7 @@ export default function LandingPage() {
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-10 sm:p-16 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Ready to get started?</h2>
           <p className="text-lg text-slate-400 max-w-xl mx-auto mb-8">
-            Set up MedNemo in minutes. Add your first patient and start building their medical memory.
+            Set up MedMemo in minutes. Add your first patient and start building their medical memory.
           </p>
           <Link
             href="/dashboard"
@@ -229,10 +227,8 @@ export default function LandingPage() {
       <footer className="border-t border-slate-200 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-[10px] tracking-tight" aria-hidden="true">
-              M
-            </div>
-            <span className="text-sm font-semibold text-slate-900">MedNemo</span>
+            <MedMemoMark size={24} />
+            <span className="text-sm font-semibold text-slate-900">MedMemo</span>
           </div>
           <p className="text-xs text-slate-500">Built with Railtracks, Supabase, and Next.js. Privacy-first by design.</p>
         </div>

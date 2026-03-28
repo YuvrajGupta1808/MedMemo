@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MedNemo - AI Health Assistant",
+  title: "MedMemo - AI Health Assistant",
   description: "Your privacy-first, voice-enabled health memory assistant.",
 };
 
