@@ -337,30 +337,80 @@ function OverviewPanel({ user, sessions, documents, notes }: { user: Patient; se
   );
 }
 
-function DocumentsPanel({ documents }: { documents: Document[] }) {
-  if (documents.length === 0) {
-    return (
-      <EmptyPanel
-        icon={<FileText size={28} />}
-        title="No documents yet"
-        description="Upload documents through the chat assistant or the API."
-      />
-    );
+function DocumentsPanel({ documents, sessions, user, reload }: { documents: Document[]; sessions: Session[]; user: Patient; reload: () => void }) {
+  const [selectedSession, setSelectedSession] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadResults, setUploadResults] = useState<IngestResult[] | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleUpload() {
+    const files = fileRef.current?.files;
+    if (!files || files.length === 0 || !selectedSession) return;
+    setUploading(true);
+    setActionError(null);
+    setUploadResults(null);
+    try {
+      const res = await apiIngestFiles(Array.from(files), user.external_id, selectedSession);
+      setUploadResults(res.results);
+      if (fileRef.current) fileRef.current.value = '';
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDeleteDoc(doc: Document) {
+    if (!confirm(`Delete document "${doc.file_name}"?`)) return;
+    setActionError(null);
+    try {
+      await apiDeleteDocument(doc.id);
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to delete document');
+    }
   }
 
   const processingDocs = documents.filter((d) => d.status === 'processing' || d.status === 'pending');
 
-  const tableData = documents.map((d) => ({
-    name: d.file_name,
-    type: d.file_type.toUpperCase(),
-    pages: d.pages_ingested,
-    status: d.status,
-    date: new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  }));
-
   return (
     <div className="flex flex-col gap-6">
-      {/* Show ProgressTracker for documents being processed */}
+      {/* Upload section */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2"><Upload size={14} /> Upload Documents</h3>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-600">Session</label>
+            <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Select a session…</option>
+              {sessions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-600">Files</label>
+            <input ref={fileRef} type="file" accept=".pdf,.jpeg,.jpg,.png" multiple className="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:text-sm file:font-medium" />
+          </div>
+          <button onClick={handleUpload} disabled={uploading || !selectedSession} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+            {uploading && <Loader2 size={14} className="animate-spin" />} Upload &amp; Ingest
+          </button>
+        </div>
+        {uploadResults && (
+          <div className="mt-3 space-y-1">
+            {uploadResults.map((r, i) => (
+              <div key={i} className={`flex items-center gap-2 text-sm ${r.status === 'error' ? 'text-red-600' : 'text-green-700'}`}>
+                {r.status === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
+                {r.file_name} {r.status === 'error' ? `— ${r.error}` : `— ${r.pages_ingested} pages ingested`}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {actionError && <ErrorBanner message={actionError} />}
+
+      {/* Processing pipeline */}
       {processingDocs.length > 0 && (
         <div>
           <h3 className="text-sm font-semibold text-slate-900 mb-3">Processing Pipeline</h3>
@@ -380,108 +430,337 @@ function DocumentsPanel({ documents }: { documents: Document[] }) {
         </div>
       )}
 
-      {/* Full documents table */}
-      <DataTable
-        id="all-documents"
-        columns={[
-          { key: 'name', label: 'File Name', priority: 'primary' },
-          { key: 'type', label: 'Type' },
-          { key: 'pages', label: 'Pages', format: { kind: 'number' }, align: 'right' },
-          { key: 'status', label: 'Status' },
-          { key: 'date', label: 'Date' },
-        ]}
-        data={tableData}
-        defaultSort={{ by: 'date', direction: 'desc' }}
-        emptyMessage="No documents uploaded yet."
-      />
+      {/* Documents table with delete */}
+      {documents.length === 0 ? (
+        <EmptyPanel icon={<FileText size={28} />} title="No documents yet" description="Upload documents above to get started." />
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <th className="text-left px-5 py-3 font-medium text-slate-600">File Name</th>
+                <th className="text-left px-5 py-3 font-medium text-slate-600">Type</th>
+                <th className="text-right px-5 py-3 font-medium text-slate-600">Pages</th>
+                <th className="text-left px-5 py-3 font-medium text-slate-600">Status</th>
+                <th className="text-left px-5 py-3 font-medium text-slate-600">Date</th>
+                <th className="px-5 py-3 w-12" />
+              </tr>
+            </thead>
+            <tbody>
+              {documents.map((d) => (
+                <tr key={d.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                  <td className="px-5 py-3 font-medium text-slate-900">{d.file_name}</td>
+                  <td className="px-5 py-3 text-slate-600">{d.file_type.toUpperCase()}</td>
+                  <td className="px-5 py-3 text-right tabular-nums text-slate-600">{d.pages_ingested}</td>
+                  <td className="px-5 py-3 text-slate-600">{d.status}</td>
+                  <td className="px-5 py-3 text-slate-600">{new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                  <td className="px-5 py-3">
+                    <button onClick={() => handleDeleteDoc(d)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" aria-label={`Delete ${d.file_name}`}>
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
-function SessionsPanel({ sessions }: { sessions: Session[] }) {
-  if (sessions.length === 0) {
-    return (
-      <EmptyPanel
-        icon={<Mic size={28} />}
-        title="No sessions yet"
-        description="Create a session through the chat assistant to get started."
-      />
-    );
+function SessionsPanel({ sessions, user, reload }: { sessions: Session[]; user: Patient; reload: () => void }) {
+  const [showForm, setShowForm] = useState(false);
+  const [sessionName, setSessionName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function handleCreate() {
+    if (!sessionName.trim()) return;
+    setCreating(true);
+    setActionError(null);
+    try {
+      await apiCreateSession(user.external_id, sessionName.trim());
+      setSessionName('');
+      setShowForm(false);
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to create session');
+    } finally {
+      setCreating(false);
+    }
   }
 
-  const tableData = sessions.map((s) => ({
-    name: s.name,
-    created: new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    updated: new Date(s.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  }));
+  async function handleDelete(session: Session) {
+    if (!confirm(`Delete session "${session.name}"?`)) return;
+    setActionError(null);
+    try {
+      await apiDeleteSession(session.id);
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to delete session');
+    }
+  }
 
   return (
-    <DataTable
-      id="all-sessions"
-      columns={[
-        { key: 'name', label: 'Session Name', priority: 'primary' },
-        { key: 'created', label: 'Created' },
-        { key: 'updated', label: 'Last Updated' },
-      ]}
-      data={tableData}
-      defaultSort={{ by: 'created', direction: 'desc' }}
-      emptyMessage="No sessions yet."
-    />
+    <div className="flex flex-col gap-4">
+      {/* New Session button / form */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        {!showForm ? (
+          <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+            <Plus size={14} /> New Session
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Session name…"
+              value={sessionName}
+              onChange={(e) => setSessionName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+            <button onClick={handleCreate} disabled={creating || !sessionName.trim()} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              {creating && <Loader2 size={14} className="animate-spin" />} Create
+            </button>
+            <button onClick={() => { setShowForm(false); setSessionName(''); }} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors">
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+
+      {actionError && <ErrorBanner message={actionError} />}
+
+      {sessions.length === 0 ? (
+        <EmptyPanel icon={<Mic size={28} />} title="No sessions yet" description="Create a session to get started." />
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100">
+                <th className="text-left px-5 py-3 font-medium text-slate-600">Session Name</th>
+                <th className="text-left px-5 py-3 font-medium text-slate-600">Created</th>
+                <th className="text-left px-5 py-3 font-medium text-slate-600">Last Updated</th>
+                <th className="px-5 py-3 w-12" />
+              </tr>
+            </thead>
+            <tbody>
+              {sessions.map((s) => (
+                <tr key={s.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                  <td className="px-5 py-3 font-medium text-slate-900">{s.name}</td>
+                  <td className="px-5 py-3 text-slate-600">{new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                  <td className="px-5 py-3 text-slate-600">{new Date(s.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                  <td className="px-5 py-3">
+                    <button onClick={() => handleDelete(s)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" aria-label={`Delete session ${s.name}`}>
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 
-function NotesPanel({ notes }: { notes: Note[] }) {
-  if (notes.length === 0) {
-    return (
-      <EmptyPanel
-        icon={<ClipboardList size={28} />}
-        title="No notes yet"
-        description="Record an audio session to generate transcription notes."
-      />
-    );
+function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions: Session[]; user: Patient; reload: () => void }) {
+  const [selectedSession, setSelectedSession] = useState('');
+  const [step, setStep] = useState<'idle' | 'uploading' | 'transcribing'>('idle');
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const audioRef = useRef<HTMLInputElement>(null);
+
+  async function handleUploadAndTranscribe() {
+    const file = audioRef.current?.files?.[0];
+    if (!file || !selectedSession) return;
+    setActionError(null);
+    setSuccess(false);
+    try {
+      setStep('uploading');
+      const uploadRes = await apiUploadAudio(file, user.external_id, selectedSession);
+      setStep('transcribing');
+      await apiTranscribe(uploadRes.storage_path, user.external_id, selectedSession, file.type || 'audio/mpeg');
+      if (audioRef.current) audioRef.current.value = '';
+      setSuccess(true);
+      reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to transcribe audio');
+    } finally {
+      setStep('idle');
+    }
   }
+
   return (
     <div className="flex flex-col gap-6">
-      {notes.map((note) => (
-        <div key={note.id} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-blue-600" aria-hidden="true" />
-              <span className="text-xs font-medium text-slate-500">
-                {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
-              </span>
-            </div>
-            <button className="text-xs font-medium text-blue-700 hover:underline focus-ring rounded px-1 flex items-center gap-1" aria-label="Download note">
-              <Download size={12} aria-hidden="true" /> Export
-            </button>
+      {/* Upload audio section */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2"><Mic size={14} /> Record / Upload Audio</h3>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-600">Session</label>
+            <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Select a session…</option>
+              {sessions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
           </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-600">Audio file</label>
+            <input ref={audioRef} type="file" accept="audio/*" className="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:text-sm file:font-medium" />
+          </div>
+          <button onClick={handleUploadAndTranscribe} disabled={step !== 'idle' || !selectedSession} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+            {step !== 'idle' && <Loader2 size={14} className="animate-spin" />}
+            {step === 'uploading' ? 'Uploading…' : step === 'transcribing' ? 'Transcribing…' : 'Upload & Transcribe'}
+          </button>
+        </div>
+        {success && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+            <CheckCircle2 size={16} /> Transcription complete! Note added.
+          </div>
+        )}
+        {actionError && <div className="mt-3"><ErrorBanner message={actionError} /></div>}
+      </div>
 
-          {/* Summary */}
-          <h3 className="text-sm font-semibold text-slate-900 mb-2">Summary</h3>
-          <p className="text-sm text-slate-700 leading-relaxed mb-4">{note.summary}</p>
+      {/* Existing notes */}
+      {notes.length === 0 ? (
+        <EmptyPanel icon={<ClipboardList size={28} />} title="No notes yet" description="Upload an audio file above to generate transcription notes." />
+      ) : (
+        notes.map((note) => (
+          <div key={note.id} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-blue-600" aria-hidden="true" />
+                <span className="text-xs font-medium text-slate-500">
+                  {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                </span>
+              </div>
+              <button className="text-xs font-medium text-blue-700 hover:underline focus-ring rounded px-1 flex items-center gap-1" aria-label="Download note">
+                <Download size={12} aria-hidden="true" /> Export
+              </button>
+            </div>
+            <h3 className="text-sm font-semibold text-slate-900 mb-2">Summary</h3>
+            <p className="text-sm text-slate-700 leading-relaxed mb-4">{note.summary}</p>
+            {note.segments.length > 0 && (
+              <div className="border-t border-slate-100 pt-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                  Transcript Sources ({note.segments.length} segments)
+                </p>
+                <CitationList
+                  id={`note-citations-${note.id}`}
+                  variant="stacked"
+                  citations={note.segments.map((seg, i) => ({
+                    id: `${note.id}-seg-${i}`,
+                    title: `${seg.speaker} — ${seg.timestamp}`,
+                    domain: 'transcript',
+                    href: `https://mednemo.local/transcript/${note.id}#seg-${i}`,
+                    type: 'document' as const,
+                    snippet: seg.text,
+                  }))}
+                />
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
 
-          {/* Transcript segments as CitationList */}
-          {note.segments.length > 0 && (
-            <div className="border-t border-slate-100 pt-4">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                Transcript Sources ({note.segments.length} segments)
-              </p>
-              <CitationList
-                id={`note-citations-${note.id}`}
-                variant="stacked"
-                citations={note.segments.map((seg, i) => ({
-                  id: `${note.id}-seg-${i}`,
-                  title: `${seg.speaker} — ${seg.timestamp}`,
-                  domain: 'transcript',
-                  href: `https://mednemo.local/transcript/${note.id}#seg-${i}`,
-                  type: 'document' as const,
-                  snippet: seg.text,
-                }))}
-              />
+function QueryPanel({ sessions }: { sessions: Session[] }) {
+  const [selectedSession, setSelectedSession] = useState('');
+  const [question, setQuestion] = useState('');
+  const [limit, setLimit] = useState(3);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<QueryResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleAsk() {
+    if (!selectedSession || !question.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await apiQuery(question.trim(), selectedSession, limit);
+      setResult(res);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Query failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="bg-white rounded-2xl border border-slate-200 p-5">
+        <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2"><Search size={14} /> Query Documents</h3>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col gap-1 min-w-[200px]">
+              <label className="text-xs font-medium text-slate-600">Session</label>
+              <select value={selectedSession} onChange={(e) => setSelectedSession(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select a session…</option>
+                {sessions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Pages to retrieve</label>
+              <input type="number" min={1} max={10} value={limit} onChange={(e) => setLimit(Math.max(1, Math.min(10, Number(e.target.value))))} className="w-20 px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+          <textarea
+            placeholder="Ask a clinical question about this session's documents…"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            rows={3}
+            className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+          <button onClick={handleAsk} disabled={loading || !selectedSession || !question.trim()} className="self-start flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+            {loading && <Loader2 size={14} className="animate-spin" />} Ask
+          </button>
+        </div>
+      </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 size={24} className="animate-spin text-blue-600" />
+        </div>
+      )}
+
+      {error && <ErrorBanner message={error} />}
+
+      {result && (
+        <div className="flex flex-col gap-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <h3 className="text-sm font-semibold text-slate-900 mb-2">Answer</h3>
+            <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{result.answer}</p>
+          </div>
+          {result.pages.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">Source Pages ({result.pages.length})</h3>
+              <div className="space-y-2">
+                {result.pages.map((p, i) => (
+                  <div key={i} className="flex items-center gap-3 text-sm text-slate-600 bg-slate-50 rounded-xl px-4 py-2">
+                    <FileText size={14} className="text-slate-400 shrink-0" />
+                    <span className="font-mono text-xs text-slate-500">{p.document_id.slice(0, 8)}…</span>
+                    <span>Page {p.page_number}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
-      ))}
+      )}
+    </div>
+  );
+}
+
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+      <AlertCircle size={16} className="shrink-0" /> {message}
     </div>
   );
 }
