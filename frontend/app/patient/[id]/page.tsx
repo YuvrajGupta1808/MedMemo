@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   Trash2,
   Upload,
+  Paperclip,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useChatPanel } from '@/components/chat';
@@ -386,34 +387,111 @@ function DocumentsPanel({ documents, sessions, user, reload }: { documents: Docu
 
   const processingDocs = documents.filter((d) => d.status === 'processing' || d.status === 'pending');
 
+  const [dragOver, setDragOver] = useState(false);
+  const selectedFiles = fileRef.current?.files;
+  const fileCount = selectedFiles?.length ?? 0;
+
   return (
     <div className="flex flex-col gap-6">
       {/* Upload section */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 p-6">
-        <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2"><Upload size={16} className="text-blue-600" /> Upload Documents</h3>
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
+          <Upload size={15} className="text-blue-600" />
+          Upload Documents
+        </h3>
         {!sessionId ? (
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Loader2 size={14} className="animate-spin" /> Loading session…
           </div>
         ) : (
-        <div className="flex flex-col sm:flex-row items-end gap-4">
-          <div className="flex-1 flex flex-col gap-2">
-            <label className="text-sm font-semibold text-slate-700">Select Files</label>
-            <input ref={fileRef} type="file" accept=".pdf,.jpeg,.jpg,.png" multiple className="text-sm px-4 py-2.5 border border-blue-200 rounded-xl bg-white file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-blue-100 file:text-blue-700 file:text-sm file:font-semibold hover:border-blue-300 transition-colors" />
-            <p className="text-xs text-slate-500">Supported: PDF, JPG, PNG</p>
+          <div className="flex flex-col gap-4">
+            {/* Drop zone */}
+            <div
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                if (fileRef.current && e.dataTransfer.files.length > 0) {
+                  fileRef.current.files = e.dataTransfer.files;
+                  // trigger re-render
+                  fileRef.current.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileRef.current?.click(); }}
+              aria-label="Drop files here or click to browse"
+              className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed py-8 px-4 cursor-pointer transition-all ${
+                dragOver
+                  ? 'border-blue-400 bg-blue-50/60'
+                  : 'border-slate-200 bg-slate-50/50 hover:border-blue-300 hover:bg-blue-50/30'
+              }`}
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                <Upload size={18} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-slate-700">
+                  {fileCount > 0
+                    ? `${fileCount} file${fileCount > 1 ? 's' : ''} selected`
+                    : 'Drop files here or click to browse'}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">PDF, JPG, PNG</p>
+              </div>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf,.jpeg,.jpg,.png"
+              multiple
+              className="hidden"
+              onChange={() => {
+                // force re-render for file count
+                setDragOver(false);
+              }}
+              aria-label="Select files"
+            />
+
+            {/* Upload button */}
+            <button
+              onClick={handleUpload}
+              disabled={uploading || fileCount === 0}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 active:bg-slate-950 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-ring"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Uploading…
+                </>
+              ) : (
+                <>
+                  <Upload size={15} />
+                  Upload & Ingest
+                </>
+              )}
+            </button>
           </div>
-          <button onClick={handleUpload} disabled={uploading} className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 disabled:opacity-50 transition-all whitespace-nowrap">
-            {uploading && <Loader2 size={16} className="animate-spin" />} {uploading ? 'Uploading...' : 'Upload & Ingest'}
-          </button>
-        </div>
         )}
+
+        {/* Results */}
         {uploadResults && (
-          <div className="mt-4 space-y-2 bg-white rounded-xl p-4">
+          <div className="mt-4 space-y-2">
             {uploadResults.map((r, i) => (
-              <div key={i} className={`flex items-start gap-3 text-sm ${r.status === 'error' ? 'text-red-700' : 'text-green-700'}`}>
-                <span className="mt-0.5">{r.status === 'error' ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}</span>
-                <div>
-                  <p className="font-medium">{r.file_name}</p>
+              <div
+                key={i}
+                className={`flex items-start gap-3 text-sm px-3 py-2.5 rounded-lg ${
+                  r.status === 'error'
+                    ? 'text-red-700 bg-red-50 border border-red-100'
+                    : 'text-green-700 bg-green-50 border border-green-100'
+                }`}
+              >
+                <span className="mt-0.5 shrink-0">
+                  {r.status === 'error' ? <AlertCircle size={15} /> : <CheckCircle2 size={15} />}
+                </span>
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{r.file_name}</p>
                   <p className="text-xs opacity-80">{r.status === 'error' ? r.error : `${r.pages_ingested} pages ingested`}</p>
                 </div>
               </div>
@@ -597,26 +675,41 @@ function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions
           <div className="flex-1 h-px bg-slate-200" />
         </div>
 
-        {/* Existing file picker */}
+        {/* Audio file picker */}
         {!sessionId ? (
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Loader2 size={14} className="animate-spin" /> Loading session…
           </div>
         ) : (
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-600">Audio file</label>
-              <input ref={audioRef} type="file" accept="audio/*" className="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:text-sm file:font-medium" />
-            </div>
-            <button onClick={handleUploadAndTranscribe} disabled={step !== 'idle' || isRecording} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => audioRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 active:bg-slate-300 transition-colors focus-ring"
+            >
+              <Paperclip size={15} />
+              {audioRef.current?.files?.[0]?.name || 'Choose audio file'}
+            </button>
+            <input
+              ref={audioRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              aria-label="Select audio file"
+            />
+            <button
+              onClick={handleUploadAndTranscribe}
+              disabled={step !== 'idle' || isRecording}
+              className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-ring"
+            >
               {step !== 'idle' && <Loader2 size={14} className="animate-spin" />}
-              {step === 'uploading' ? 'Uploading…' : step === 'transcribing' ? 'Transcribing…' : 'Upload & Transcribe'}
+              {step === 'uploading' ? 'Uploading…' : step === 'transcribing' ? 'Transcribing…' : 'Transcribe'}
             </button>
           </div>
         )}
         {success && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-            <CheckCircle2 size={16} /> Transcription complete! Note added.
+          <div className="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-2.5">
+            <CheckCircle2 size={15} /> Transcription complete! Note added.
           </div>
         )}
         {actionError && <div className="mt-3"><ErrorBanner message={actionError} /></div>}
