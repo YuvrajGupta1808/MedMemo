@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { useChat } from 'ai/react';
+import { useRailtracksChat } from '@/hooks/useRailtracksChat';
 import {
   ArrowUp,
   Loader2,
@@ -29,16 +29,8 @@ export default function PatientChat({ patientName, patientId }: PatientChatProps
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: '/api/chat',
-    body: { context: { page: 'patient', patientId, patientName } },
-    initialMessages: [
-      {
-        id: 'welcome',
-        role: 'assistant',
-        content: `Hi! I can help with **${patientName}**'s records. Ask questions, upload docs, or record a session.`,
-      },
-    ],
+  const { messages, input, handleInputChange, handleSubmit, isLoading, isConnected } = useRailtracksChat({
+    apiEndpoint: '/api/agent',
   });
 
   useEffect(() => {
@@ -100,6 +92,9 @@ export default function PatientChat({ patientName, patientId }: PatientChatProps
           <p className="text-xs text-slate-500 truncate">
             {isRecording ? '🔴 Recording…' : isLoading ? 'Thinking…' : `Viewing ${patientName}`}
           </p>
+          {!isConnected && (
+            <span className="ml-auto text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full shrink-0">Disconnected</span>
+          )}
         </div>
       </div>
 

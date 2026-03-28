@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
-import { useChat } from 'ai/react';
+import { useRailtracksChat } from '@/hooks/useRailtracksChat';
 import {
   ArrowUp,
   Loader2,
@@ -17,15 +17,8 @@ export default function Chatbot({ patientName }: ChatbotProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: '/api/chat',
-    initialMessages: [
-      {
-        id: 'welcome',
-        role: 'assistant',
-        content: `Hi! I'm your MedMemo assistant. How can I help you with **${patientName}'s** records today?`,
-      },
-    ],
+  const { messages, input, handleInputChange, handleSubmit, isLoading, isConnected } = useRailtracksChat({
+    apiEndpoint: '/api/agent-global',
   });
 
   // Auto-scroll to bottom on new messages
@@ -50,6 +43,9 @@ export default function Chatbot({ patientName }: ChatbotProps) {
           <p className="text-xs text-slate-600">
             {isLoading ? 'Thinking…' : 'Ready to help'}
           </p>
+          {!isConnected && (
+            <span className="ml-auto text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full shrink-0">Disconnected</span>
+          )}
         </div>
         {isLoading && (
           <Loader2 size={16} className="ml-auto text-blue-600 animate-spin" aria-label="Loading" />
