@@ -18,7 +18,6 @@ export default function Chatbot({ patientName }: ChatbotProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, isConnected } = useRailtracksChat({
-    apiEndpoint: '/api/agent-global',
     agentUrl: process.env.NEXT_PUBLIC_AGENT_GLOBAL_URL ?? 'http://localhost:7001',
   });
 

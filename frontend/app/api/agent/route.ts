@@ -1,6 +1,6 @@
 export const runtime = 'nodejs';
 
-const AGENT_URL = process.env.AGENT_URL ?? 'http://127.0.0.1:7002';
+const AGENT_URL = process.env.AGENT_URL ?? 'http://127.0.0.1:7001';
 
 export async function POST(req: Request) {
   try {

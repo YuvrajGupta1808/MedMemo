@@ -20,15 +20,15 @@ export interface RailtracksToolInvocation {
 }
 
 interface UseRailtracksChatOptions {
-  /** Next.js proxy endpoint for POST /send_message (e.g. '/api/agent') */
-  apiEndpoint: string;
-  /** Direct agent SSE URL (e.g. 'http://localhost:7001') */
+  /** Direct agent URL (e.g. 'http://localhost:7001') — used for both POST and SSE */
   agentUrl: string;
+  /** @deprecated No longer used — POST goes directly to agentUrl */
+  apiEndpoint?: string;
   /** Optional context to include with every message (e.g. patientId, sessionId) */
   context?: Record<string, unknown>;
 }
 
-export function useRailtracksChat({ apiEndpoint, agentUrl, context }: UseRailtracksChatOptions) {
+export function useRailtracksChat({ agentUrl, context }: UseRailtracksChatOptions) {
   const [messages, setMessages] = useState<RailtracksMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -137,7 +137,8 @@ export function useRailtracksChat({ apiEndpoint, agentUrl, context }: UseRailtra
     setIsLoading(true);
 
     try {
-      await fetch(apiEndpoint, {
+      // Send directly to agent — no Next.js proxy needed
+      await fetch(`${agentUrl}/send_message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text, context }),
@@ -150,7 +151,7 @@ export function useRailtracksChat({ apiEndpoint, agentUrl, context }: UseRailtra
         { id: nextId(), role: 'assistant' as const, content: '⚠️ Failed to send message. Is the agent running?' },
       ]);
     }
-  }, [input, apiEndpoint, nextId]);
+  }, [input, agentUrl, context, nextId]);
 
   const handleSubmit = useCallback((e?: React.FormEvent) => {
     e?.preventDefault();

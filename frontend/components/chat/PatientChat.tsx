@@ -31,8 +31,7 @@ export default function PatientChat({ patientName, patientId, sessionId }: Patie
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, isConnected } = useRailtracksChat({
-    apiEndpoint: '/api/agent',
-    agentUrl: process.env.NEXT_PUBLIC_AGENT_URL ?? 'http://localhost:7002',
+    agentUrl: process.env.NEXT_PUBLIC_AGENT_GLOBAL_URL ?? 'http://localhost:7001',
     context: { patientId, patientName, sessionId },
   });
 
