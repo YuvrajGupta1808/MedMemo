@@ -1,4 +1,7 @@
 """Railtracks function_node tools for MedNemo agent operations."""
+import base64
+import os
+
 import railtracks as rt
 
 import src.notes.supabase_store as db
@@ -15,11 +18,14 @@ def create_patient_session(name: str) -> str:
     Returns:
         Confirmation with the new session ID.
     """
-    user_id = rt.context.get("user_id")
-    user = db.get_or_create_user(user_id)
-    session = db.create_session(user["id"], name)
-    rt.context.put("session_id", session["id"])  # store for subsequent tools
-    return f"Session '{name}' created with ID: {session['id']}"
+    try:
+        user_id = rt.context.get("user_id")
+        user = db.get_or_create_user(user_id)
+        session = db.create_session(user["id"], name)
+        rt.context.put("session_id", session["id"])  # store for subsequent tools
+        return f"Session '{name}' created with ID: {session['id']}"
+    except Exception as e:
+        return f"Error in create_patient_session: {e}"
 
 
 @rt.function_node
@@ -28,39 +34,70 @@ def list_patient_sessions() -> str:
     Returns:
         Formatted list of session names and IDs.
     """
-    user_id = rt.context.get("user_id")
-    user = db.get_or_create_user(user_id)
-    sessions = db.list_sessions(user["id"])
-    if not sessions:
-        return "No sessions found."
-    lines = [f"- {s['name']} (ID: {s['id']})" for s in sessions]
-    return "Sessions:\n" + "\n".join(lines)
+    try:
+        user_id = rt.context.get("user_id")
+        user = db.get_or_create_user(user_id)
+        sessions = db.list_sessions(user["id"])
+        if not sessions:
+            return "No sessions found."
+        lines = [f"- {s['name']} (ID: {s['id']})" for s in sessions]
+        return "Sessions:\n" + "\n".join(lines)
+    except Exception as e:
+        return f"Error in list_patient_sessions: {e}"
 
 
 @rt.function_node
-def ingest_document(file_path: str, file_type: str) -> str:
+def ingest_document(file_name: str, file_data: str = "", file_path: str = "", file_type: str = "") -> str:
     """Ingest a medical document (PDF, JPEG, PNG) into the current patient session.
+
+    Supports two modes:
+    - **Base64 mode** (chat attachments): provide `file_name` and `file_data` (base64-encoded
+      content, optionally with a data URI prefix like "data:application/pdf;base64,").
+    - **File path mode** (legacy/disk): provide `file_name` and `file_path` (absolute path on disk).
+
     Args:
-        file_path: Absolute path to the document on disk.
-        file_type: One of 'pdf', 'jpeg', or 'png'.
+        file_name: The filename (e.g. "report.pdf"). Used for storage and to auto-detect file_type.
+        file_data: Base64-encoded file content from chat attachments. May include a data URI prefix.
+        file_path: Absolute path to the document on disk (fallback when file_data is not provided).
+        file_type: One of 'pdf', 'jpeg', or 'png'. Auto-detected from file_name extension if omitted.
     Returns:
         Confirmation with the number of pages ingested.
     """
-    user_id = rt.context.get("user_id")
-    session_id = rt.context.get("session_id")
-    user = db.get_or_create_user(user_id)
-    internal_uid = user["id"]
+    try:
+        # Auto-detect file_type from extension if not provided
+        if not file_type:
+            ext = os.path.splitext(file_name)[1].lower().lstrip(".")
+            ext_map = {"pdf": "pdf", "jpg": "jpeg", "jpeg": "jpeg", "png": "png"}
+            file_type = ext_map.get(ext, "")
+            if not file_type:
+                return f"Error in ingest_document: cannot detect file type from '{file_name}'. Provide file_type explicitly."
 
-    with open(file_path, "rb") as f:
-        file_bytes = f.read()
+        # Get file bytes from either base64 data or disk path
+        if file_data:
+            # Strip data URI prefix if present (e.g. "data:application/pdf;base64,...")
+            if file_data.startswith("data:"):
+                file_data = file_data.split(",", 1)[-1]
+            file_bytes = base64.b64decode(file_data)
+        elif file_path:
+            with open(file_path, "rb") as f:
+                file_bytes = f.read()
+        else:
+            return "Error in ingest_document: provide either file_data (base64) or file_path."
 
-    content_type = {"pdf": "application/pdf", "jpeg": "image/jpeg", "png": "image/png"}[file_type]
-    storage_path = db.upload_file(file_bytes, file_path.split("/")[-1], content_type, internal_uid, session_id)
-    doc = db.create_document_record(internal_uid, session_id, file_path.split("/")[-1], file_type, storage_path)
-    db.update_document_status(doc["id"], "processing")
-    pages = _pipeline.ingest(file_bytes, doc["id"], file_type, internal_uid, session_id)
-    db.update_document_status(doc["id"], "ingested", pages)
-    return f"Ingested '{file_path.split('/')[-1]}' — {pages} page(s) stored in session."
+        user_id = rt.context.get("user_id")
+        session_id = rt.context.get("session_id")
+        user = db.get_or_create_user(user_id)
+        internal_uid = user["id"]
+
+        content_type = {"pdf": "application/pdf", "jpeg": "image/jpeg", "png": "image/png"}[file_type]
+        storage_path = db.upload_file(file_bytes, file_name, content_type, internal_uid, session_id)
+        doc = db.create_document_record(internal_uid, session_id, file_name, file_type, storage_path)
+        db.update_document_status(doc["id"], "processing")
+        pages = _pipeline.ingest(file_bytes, doc["id"], file_type, internal_uid, session_id)
+        db.update_document_status(doc["id"], "ingested", pages)
+        return f"Ingested '{file_name}' — {pages} page(s) stored in session."
+    except Exception as e:
+        return f"Error in ingest_document: {e}"
 
 
 @rt.function_node
@@ -72,16 +109,19 @@ def query_patient_documents(question: str, limit: int = 3) -> str:
     Returns:
         AI-generated answer based on the retrieved document pages.
     """
-    session_id = rt.context.get("session_id")
-    result = _pipeline.query(question, limit=min(limit, 10), session_id=session_id)
-    answer = result.get("answer", "No answer generated.")
-    pages = result.get("pages", [])
-    page_refs = ", ".join(
-        f"doc {p.get('document_id', '')[:8]}… p.{p.get('page_number', '?')}"
-        for p in pages
-        if p.get("document_type") != "transcript"
-    )
-    return f"Answer: {answer}\n\nSources: {page_refs if page_refs else 'transcript/audio notes'}"
+    try:
+        session_id = rt.context.get("session_id")
+        result = _pipeline.query(question, limit=min(limit, 10), session_id=session_id)
+        answer = result.get("answer", "No answer generated.")
+        pages = result.get("pages", [])
+        page_refs = ", ".join(
+            f"doc {p.get('document_id', '')[:8]}… p.{p.get('page_number', '?')}"
+            for p in pages
+            if p.get("document_type") != "transcript"
+        )
+        return f"Answer: {answer}\n\nSources: {page_refs if page_refs else 'transcript/audio notes'}"
+    except Exception as e:
+        return f"Error in query_patient_documents: {e}"
 
 
 @rt.function_node
@@ -93,24 +133,27 @@ def transcribe_clinical_audio(audio_path: str, mime_type: str = "audio/wav") -> 
     Returns:
         Clinical summary and transcript confirmation.
     """
-    from src.notes.note_taker import NoteTaker
+    try:
+        from src.notes.note_taker import NoteTaker
 
-    user_id = rt.context.get("user_id")
-    session_id = rt.context.get("session_id")
-    user = db.get_or_create_user(user_id)
-    internal_uid = user["id"]
+        user_id = rt.context.get("user_id")
+        session_id = rt.context.get("session_id")
+        user = db.get_or_create_user(user_id)
+        internal_uid = user["id"]
 
-    with open(audio_path, "rb") as f:
-        audio_bytes = f.read()
+        with open(audio_path, "rb") as f:
+            audio_bytes = f.read()
 
-    storage_path = db.upload_audio(audio_bytes, audio_path.split("/")[-1], mime_type, internal_uid, session_id)
-    transcript = NoteTaker().transcribe(audio_bytes, mime_type)
-    note = db.save_note(internal_uid, session_id, storage_path, transcript)
-    _pipeline.ingest_transcript(transcript, note["id"], internal_uid, session_id)
-    return (
-        f"Transcription complete. Summary: {transcript['summary']}\n"
-        f"{len(transcript['segments'])} speaker segment(s) ingested into RAG."
-    )
+        storage_path = db.upload_audio(audio_bytes, audio_path.split("/")[-1], mime_type, internal_uid, session_id)
+        transcript = NoteTaker().transcribe(audio_bytes, mime_type)
+        note = db.save_note(internal_uid, session_id, storage_path, transcript)
+        _pipeline.ingest_transcript(transcript, note["id"], internal_uid, session_id)
+        return (
+            f"Transcription complete. Summary: {transcript['summary']}\n"
+            f"{len(transcript['segments'])} speaker segment(s) ingested into RAG."
+        )
+    except Exception as e:
+        return f"Error in transcribe_clinical_audio: {e}"
 
 
 @rt.function_node
@@ -119,13 +162,16 @@ def list_session_documents() -> str:
     Returns:
         Formatted list of documents with status and page counts.
     """
-    session_id = rt.context.get("session_id")
-    docs = db.list_documents_for_session(session_id)
-    if not docs:
-        return "No documents in this session."
-    icons = {"ingested": "✅", "processing": "⏳", "failed": "❌", "pending": "🕐"}
-    lines = [f"{icons.get(d['status'], '?')} {d['file_name']} — {d['pages_ingested']} page(s)" for d in docs]
-    return "Documents:\n" + "\n".join(lines)
+    try:
+        session_id = rt.context.get("session_id")
+        docs = db.list_documents_for_session(session_id)
+        if not docs:
+            return "No documents in this session."
+        icons = {"ingested": "✅", "processing": "⏳", "failed": "❌", "pending": "🕐"}
+        lines = [f"{icons.get(d['status'], '?')} {d['file_name']} — {d['pages_ingested']} page(s)" for d in docs]
+        return "Documents:\n" + "\n".join(lines)
+    except Exception as e:
+        return f"Error in list_session_documents: {e}"
 
 
 @rt.function_node
@@ -134,9 +180,12 @@ def list_session_notes() -> str:
     Returns:
         Formatted list of notes with summaries.
     """
-    session_id = rt.context.get("session_id")
-    notes = db.list_notes(session_id)
-    if not notes:
-        return "No clinical notes in this session."
-    lines = [f"[{n['created_at']}] {n['summary']}" for n in notes]
-    return "Clinical Notes:\n" + "\n".join(lines)
+    try:
+        session_id = rt.context.get("session_id")
+        notes = db.list_notes(session_id)
+        if not notes:
+            return "No clinical notes in this session."
+        lines = [f"[{n['created_at']}] {n['summary']}" for n in notes]
+        return "Clinical Notes:\n" + "\n".join(lines)
+    except Exception as e:
+        return f"Error in list_session_notes: {e}"
