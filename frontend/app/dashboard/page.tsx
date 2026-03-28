@@ -171,8 +171,8 @@ export default function DashboardPage() {
                     format: { kind: 'number' },
                   },
                   {
-                    key: 'total-sessions',
-                    label: 'Total Sessions',
+                    key: 'total-chats',
+                    label: 'Total Chats',
                     value: Object.values(sessions).reduce((sum, s) => sum + s.length, 0),
                     format: { kind: 'number' },
                   },
@@ -469,7 +469,7 @@ function PatientCard({
         }
       }}
       className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col gap-4 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer focus-ring group"
-      aria-label={`Patient ${user.external_id}, ${sessionCount} sessions`}
+      aria-label={`Patient ${user.external_id}, ${sessionCount} chats`}
     >
       {/* Top row: avatar + name */}
       <div className="flex items-start justify-between">
@@ -500,7 +500,7 @@ function PatientCard({
         <div className="flex items-center gap-1.5">
           <CheckCircle2 size={14} className="text-emerald-600" aria-hidden="true" />
           <span className="text-xs font-medium text-slate-700">
-            {sessionCount} {sessionCount === 1 ? 'session' : 'sessions'}
+            {sessionCount} {sessionCount === 1 ? 'chat' : 'chats'}
           </span>
         </div>
         {latestSession && (

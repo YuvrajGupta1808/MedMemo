@@ -252,7 +252,7 @@ function NavItem({ icon, label, active, onClick }: { icon: ReactNode; label: str
 function OverviewPanel({ user, sessions, documents, notes }: { user: Patient; sessions: Session[]; documents: Document[]; notes: Note[] }) {
   // Stats for StatsDisplay component
   const stats = [
-    { key: 'sessions', label: 'Sessions', value: sessions.length, format: { kind: 'number' as const } },
+    { key: 'chats', label: 'Chats', value: sessions.length, format: { kind: 'number' as const } },
     { key: 'documents', label: 'Documents', value: documents.length, format: { kind: 'number' as const } },
     { key: 'notes', label: 'Notes', value: notes.length, format: { kind: 'number' as const } },
   ];
@@ -303,19 +303,19 @@ function OverviewPanel({ user, sessions, documents, notes }: { user: Patient; se
         </div>
       )}
 
-      {/* Sessions Table — tool-ui component */}
+      {/* Chats Table — tool-ui component */}
       {sessions.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">Recent Sessions</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">Recent Chats</h3>
           <DataTable
-            id="patient-sessions"
+            id="patient-chats"
             columns={[
-              { key: 'name', label: 'Session Name', priority: 'primary' },
+              { key: 'name', label: 'Chat Name', priority: 'primary' },
               { key: 'created', label: 'Created' },
               { key: 'updated', label: 'Last Updated' },
             ]}
             data={sessionTableData}
-            emptyMessage="No sessions yet."
+            emptyMessage="No chats yet."
           />
         </div>
       )}
