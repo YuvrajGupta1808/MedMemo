@@ -60,11 +60,12 @@ export interface Note {
 export async function createUser(externalId: string): Promise<Patient> {
   const sb = getSupabase();
   // Check if user already exists
-  const { data: existing } = await sb
+  const { data: existing, error: checkError } = await sb
     .from('users')
     .select('*')
     .eq('external_id', externalId)
     .limit(1);
+  if (checkError) throw new Error(checkError.message);
   if (existing && existing.length > 0) {
     throw new Error(`A patient with ID "${externalId}" already exists.`);
   }
@@ -73,7 +74,7 @@ export async function createUser(externalId: string): Promise<Patient> {
     .insert({ external_id: externalId })
     .select()
     .single();
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as Patient;
 }
 
@@ -85,7 +86,7 @@ export async function fetchUsers() {
     .from('users')
     .select('*')
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as Patient[];
 }
 
@@ -96,7 +97,7 @@ export async function fetchUser(userId: string) {
     .select('*')
     .eq('id', userId)
     .single();
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as Patient;
 }
 
@@ -107,7 +108,7 @@ export async function fetchSessions(userId: string) {
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as Session[];
 }
 
@@ -118,7 +119,7 @@ export async function fetchDocuments(sessionId: string) {
     .select('*')
     .eq('session_id', sessionId)
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as Document[];
 }
 
@@ -129,7 +130,7 @@ export async function fetchDocumentsForUser(userId: string) {
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as Document[];
 }
 
@@ -140,7 +141,7 @@ export async function fetchNotes(sessionId: string) {
     .select('*')
     .eq('session_id', sessionId)
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as Note[];
 }
 
@@ -151,6 +152,6 @@ export async function fetchNotesForUser(userId: string) {
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as Note[];
 }
