@@ -15,13 +15,7 @@ from railtracks.llm.message import UserMessage, AssistantMessage
 from railtracks.llm.history import MessageHistory
 from railtracks.interaction._call import call
 
-from src.agents.tools import (
-    query_patient_documents,
-    list_patient_sessions,
-    switch_session,
-    get_session_details,
-    list_session_documents,
-)
+from src.agents.tools import query_patient_documents
 
 # LLM — reuses GEMINI_API_KEY from .env
 model = rt.llm.GeminiLLM("gemini-2.5-flash")
@@ -29,35 +23,22 @@ model = rt.llm.GeminiLLM("gemini-2.5-flash")
 # MedNemo Agent — query only
 MedNemoAgent = rt.agent_node(
     "MedNemo Agent",
-    tool_nodes=[
-        list_patient_sessions,
-        switch_session,
-        get_session_details,
-        list_session_documents,
-        query_patient_documents,
-    ],
+    tool_nodes=[query_patient_documents],
     llm=model,
     system_message="""You are MedNemo, an AI medical assistant for doctors.
-You answer clinical questions about patients using retrieval-augmented generation (RAG) over their ingested medical documents.
+You answer clinical questions about the current patient session using retrieval-augmented generation (RAG) over the session's ingested medical documents.
 
-Session Management:
-- You can list all patient sessions, switch between them, and get session details.
-- When the doctor asks to "go to" or "switch to" a session, use switch_session with the session ID.
-- When the doctor mentions a patient name, use list_patient_sessions to find the right one, then switch to it automatically.
-- After switching, confirm which session is now active and what documents are available using list_session_documents.
-- If no session is active when the doctor asks a question, list sessions and ask which one to use.
-
-Querying Documents:
-- You have a query tool that searches the active session's ingested documents (lab reports, prescriptions, imaging results, clinical notes, transcripts).
-- When the doctor asks ANY question about a patient — symptoms, history, medications, lab results, diagnoses, treatment plans — ALWAYS use query_patient_documents to search the documents first.
+How you work:
+- You are connected to a specific patient session. All your queries search ONLY this session's documents.
+- When the doctor asks ANY question about the patient — symptoms, history, medications, lab results, diagnoses, treatment plans — ALWAYS use query_patient_documents to search the documents first.
 - Base your answers on the retrieved document content. Cite which documents/pages the information comes from.
-- If the query returns no relevant results, say so honestly rather than guessing.
+- If the query returns no relevant results, say "I don't see information about that in the ingested documents for this session."
 - You can have a natural conversation — greet the doctor, ask clarifying questions, explain medical findings in context.
 
 Important:
-- Do NOT say "I cannot provide information about individuals" — your entire purpose is to answer questions about the patient using their documents.
-- If asked about something not in the documents, say "I don't see information about that in the ingested documents for this session."
-- When a doctor starts the conversation, greet them and list their available sessions so they can choose one.
+- Do NOT say "I cannot provide information about individuals" — your entire purpose is to answer questions about this patient using their documents.
+- You cannot switch sessions or manage documents. You are a focused clinical Q&A assistant for the current session only.
+- When the doctor starts the conversation, greet them and let them know you're ready to answer questions about the patient's documents.
 """,
 )
 
@@ -115,8 +96,12 @@ async def mednemo_chat():
 
 
 if __name__ == "__main__":
-    user_id = sys.argv[1] if len(sys.argv) > 1 else "demo-user"
-    session_id = sys.argv[2] if len(sys.argv) > 2 else ""
+    if len(sys.argv) < 3:
+        print("Usage: python agent.py <user_id> <session_id>")
+        print("Example: python agent.py dr.sarah e6a3835d-fecd-4814-a9d4-347c1c034643")
+        sys.exit(1)
+    user_id = sys.argv[1]
+    session_id = sys.argv[2]
 
     rt.enable_logging(level="DEBUG", log_file="mednemo.log")
 
@@ -125,8 +110,8 @@ if __name__ == "__main__":
 
     rt.set_config(broadcast_callback=broadcast_handler)
 
-    logger.info(f"Starting MedNemo for user: {user_id}")
-    print(f"🏥 Starting MedNemo for user: {user_id}")
+    logger.info(f"Starting MedNemo for user: {user_id}, session: {session_id}")
+    print(f"🏥 Starting MedNemo for user: {user_id}, session: {session_id}")
     print("💬 A browser window will open with the chat interface...")
 
     rt.Flow(
