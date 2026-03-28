@@ -7,6 +7,11 @@ import {
   viewDocumentParams,
   viewDocumentToolName,
 } from "./document-viewer.ts";
+import {
+  showRagSources,
+  showRagSourcesParams,
+  showRagSourcesToolName,
+} from "./rag-sources.ts";
 
 const FASTAPI_BASE = process.env.FASTAPI_URL ?? "http://localhost:8001";
 const PORT = parseInt(process.env.PORT ?? "9000", 10);
@@ -57,28 +62,34 @@ server.tool(
 // Tool 2: show_rag_sources
 // ---------------------------------------------------------------------------
 server.tool(
-  "show_rag_sources",
+  showRagSourcesToolName,
   "Show RAG retrieval source chunks with relevance scores and highlighted passages.",
   {
-    query: z.string().describe("The query that was used for retrieval"),
-    session_id: z.string().describe("The session ID to query against"),
+    session_id: showRagSourcesParams.shape.session_id,
+    query: showRagSourcesParams.shape.query,
   },
-  async ({ query, session_id }) => {
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            tool: "show_rag_sources",
-            query,
-            session_id,
-            ui_url: `/apps/show-rag-sources/index.html?session_id=${session_id}&query=${encodeURIComponent(query)}`,
-            status: "placeholder",
-          }),
-        },
-      ],
-    };
-  }
+  async ({ session_id, query }) => {
+    try {
+      const result = await showRagSources({ session_id, query });
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+      };
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              error: (err as Error).message,
+              session_id,
+              query,
+            }),
+          },
+        ],
+        isError: true,
+      };
+    }
+  },
 );
 
 // ---------------------------------------------------------------------------

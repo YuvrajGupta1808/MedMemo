@@ -11,7 +11,7 @@ const isDevelopment = process.env.NODE_ENV === "development";
 
 // Derive output directory from the input path.
 // e.g. src/apps/view-document/index.html → dist/apps/view-document
-const inputDir = dirname(INPUT);
+const inputDir = dirname(resolve(INPUT));
 const appName = basename(inputDir);
 const isAppBuild = inputDir.includes("src/apps/");
 const outDir = isAppBuild ? resolve("dist", "apps", appName) : "dist";
@@ -26,12 +26,15 @@ for (const level of ["info", "warn", "error"] as const) {
 export default defineConfig({
   customLogger: prefixedLogger,
   plugins: [viteSingleFile()],
+  // Set root to the app directory so output index.html lands directly in outDir
+  // instead of preserving the src/apps/{name}/ directory structure
+  root: isAppBuild ? inputDir : undefined,
   build: {
     sourcemap: isDevelopment ? "inline" : undefined,
     cssMinify: !isDevelopment,
     minify: !isDevelopment,
     rollupOptions: {
-      input: INPUT,
+      input: isAppBuild ? resolve(inputDir, "index.html") : INPUT,
     },
     outDir,
     emptyOutDir: false,

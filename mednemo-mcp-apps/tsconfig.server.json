@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "src/server.ts",
+    "src/document-viewer.ts",
+    "src/rag-sources.ts"
+  ],
+  "exclude": ["node_modules", "dist", "src/apps"]
+}
