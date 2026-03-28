@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { X, Loader2, Sparkles } from 'lucide-react';
 import { MedMemoLogo } from '@/components/MedMemoLogo';
+import { PatientAvatar } from '@/components/PatientAvatar';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
 import { fetchUsers, fetchSessions, createUser, type Patient, type Session } from '@/lib/supabase';
 import { apiCreateSession } from '@/lib/api';
@@ -477,9 +478,7 @@ function PatientCard({
       {/* Top row: avatar + name */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-semibold text-sm shrink-0">
-            {user.external_id.slice(0, 2).toUpperCase()}
-          </div>
+          <PatientAvatar name={user.external_id} size="md" />
           <div>
             <h2 className="text-sm font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
               {user.external_id}

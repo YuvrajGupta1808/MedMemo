@@ -27,6 +27,7 @@ import { useChatPanel } from '@/components/chat';
 import PatientChat from '@/components/chat/PatientChat';
 import ResizableChatPanel from '@/components/chat/ResizableChatPanel';
 import { MedMemoLogo } from '@/components/MedMemoLogo';
+import { PatientAvatar } from '@/components/PatientAvatar';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
 import { DataTable } from '@/components/tool-ui/data-table/data-table';
 import { ProgressTracker } from '@/components/tool-ui/progress-tracker/progress-tracker';
@@ -197,9 +198,7 @@ export default function PatientPage() {
 
               {/* Patient header */}
               <div className="flex items-start gap-4 mb-8 pb-6 border-b border-slate-100">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-2xl shrink-0 shadow-md">
-                  {user.external_id.slice(0, 2).toUpperCase()}
-                </div>
+                <PatientAvatar name={user.external_id} size="lg" />
                 <div className="flex-1">
                   <h1 className="text-3xl font-bold text-slate-900 mb-1">{user.external_id}</h1>
                   <p className="text-sm text-slate-500 font-medium">
