@@ -77,7 +77,7 @@ Important:
 @rt.function_node
 async def global_mednemo_chat():
     """Start an interactive chat session with the full MedNemo agent."""
-    chat_ui = ChatUI(auto_open=True)
+    chat_ui = ChatUI(port=7001, auto_open=False)
     await chat_ui.connect()
     logger.info("Global Chat UI connected")
     await rt.broadcast("Chat UI connected")
