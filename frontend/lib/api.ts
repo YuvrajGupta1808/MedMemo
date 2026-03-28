@@ -39,7 +39,18 @@ export interface TranscribeResponse {
   created_at: string;
 }
 
+export interface ApiSession {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ---------- Sessions ----------
+
+export async function apiGetSessions(userExternalId: string): Promise<ApiSession[]> {
+  return apiFetch<ApiSession[]>(`/sessions/user/${encodeURIComponent(userExternalId)}`);
+}
 
 export async function apiCreateSession(user_id: string, name: string): Promise<{ id: string; name: string }> {
   return apiFetch('/sessions', {
