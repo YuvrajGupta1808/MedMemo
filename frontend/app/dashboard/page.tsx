@@ -16,9 +16,8 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { X, Loader2, Sparkles } from 'lucide-react';
+import { X, Loader2, MessageCircle } from 'lucide-react';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
-import { useChatPanel } from '@/components/chat';
 import { fetchUsers, fetchSessions, createUser, type Patient, type Session } from '@/lib/supabase';
 import { apiCreateSession } from '@/lib/api';
 
@@ -30,11 +29,6 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const { toggle: toggleChat, setContext } = useChatPanel();
-
-  useEffect(() => {
-    setContext({ page: 'dashboard' });
-  }, [setContext]);
 
   useEffect(() => {
     loadData();
@@ -81,10 +75,10 @@ export default function DashboardPage() {
       <header className="h-16 bg-white px-4 sm:px-6 flex items-center justify-between border-b border-slate-200 shrink-0">
         <Link href="/" className="flex items-center gap-2 focus-ring rounded-lg">
           <div
-            className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg"
+            className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-white font-bold text-sm tracking-tight"
             aria-hidden="true"
           >
-            +
+            M
           </div>
           <span className="text-lg font-bold tracking-tight">MedNemo</span>
         </Link>
@@ -108,13 +102,13 @@ export default function DashboardPage() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={toggleChat}
+          <Link
+            href="/chat"
             className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors focus-ring"
-            aria-label="Open AI assistant"
+            aria-label="Open AI chat"
           >
-            <Sparkles size={20} />
-          </button>
+            <MessageCircle size={20} />
+          </Link>
           <button
             className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors focus-ring"
             aria-label="Notifications"

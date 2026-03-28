@@ -7,8 +7,9 @@ import {
   Mic,
   FileText,
   ClipboardList,
-  Sparkles,
+  MessageCircle,
   Download,
+  Brain,
   ChevronLeft,
   Bell,
   LayoutDashboard,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useChatPanel } from '@/components/chat';
+import PatientChat from '@/components/chat/PatientChat';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
 import { DataTable } from '@/components/tool-ui/data-table/data-table';
 import { ProgressTracker } from '@/components/tool-ui/progress-tracker/progress-tracker';
@@ -53,7 +55,8 @@ export default function PatientPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { setContext, toggle: toggleChat } = useChatPanel();
+  const [showChat, setShowChat] = useState(true);
+  const { setContext } = useChatPanel();
 
   useEffect(() => {
     if (id) loadPatientData(id as string);
@@ -121,13 +124,22 @@ export default function PatientPage() {
           <NavItem icon={<User size={16} />} label="Patients" active={true} onClick={() => {}} />
         </nav>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleChat}
+        <div className="flex items-center gap-1">
+          <Link
+            href="/chat"
             className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors focus-ring"
-            aria-label="Toggle AI assistant"
+            aria-label="Open full AI chat"
+            title="Open full chat"
           >
-            <Sparkles size={20} />
+            <MessageCircle size={20} />
+          </Link>
+          <button
+            onClick={() => setShowChat(!showChat)}
+            className={`p-2 rounded-lg transition-colors focus-ring hidden lg:flex ${showChat ? 'bg-blue-50 text-blue-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}
+            aria-label={showChat ? 'Hide sidebar chat' : 'Show sidebar chat'}
+            aria-pressed={showChat}
+          >
+            {showChat ? <span className="text-xs font-medium">Hide Chat</span> : <span className="text-xs font-medium">Show Chat</span>}
           </button>
           <button className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors focus-ring" aria-label="Notifications">
             <Bell size={20} />
@@ -226,6 +238,12 @@ export default function PatientPage() {
           ) : null}
         </div>
 
+        {/* Right Sidebar — Patient Chat */}
+        {showChat && user && (
+          <aside className="hidden lg:flex w-[380px] bg-white border-l border-slate-200 flex-col shrink-0 overflow-hidden" aria-label="AI Assistant">
+            <PatientChat patientName={user.external_id} patientId={user.id} />
+          </aside>
+        )}
       </main>
     </div>
   );
@@ -519,7 +537,7 @@ function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions
           <div key={note.id} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-blue-600" aria-hidden="true" />
+                <Brain size={16} className="text-blue-600" aria-hidden="true" />
                 <span className="text-xs font-medium text-slate-500">
                   {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
                 </span>

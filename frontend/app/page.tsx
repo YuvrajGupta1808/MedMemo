@@ -8,10 +8,11 @@ import {
   Brain,
   FileText,
   Mic,
-  Sparkles,
   Zap,
   Lock,
   Activity,
+  Stethoscope,
+  MessageCircle,
 } from 'lucide-react';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
 import { ProgressTracker } from '@/components/tool-ui/progress-tracker/progress-tracker';
@@ -24,8 +25,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white" aria-hidden="true">
-              <Sparkles size={16} />
+            <div className="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-white font-bold text-sm tracking-tight" aria-hidden="true">
+              M
             </div>
             <span className="text-lg font-bold tracking-tight">MedNemo</span>
           </div>
@@ -34,13 +35,22 @@ export default function LandingPage() {
             <a href="#how-it-works" className="text-sm text-slate-600 hover:text-slate-900 transition-colors focus-ring rounded px-1">How it works</a>
             <a href="#demo" className="text-sm text-slate-600 hover:text-slate-900 transition-colors focus-ring rounded px-1">Demo</a>
           </nav>
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 active:bg-slate-950 transition-colors focus-ring"
-          >
-            Open App
-            <ArrowRight size={14} aria-hidden="true" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/chat"
+              className="hidden sm:flex items-center gap-1.5 text-sm text-slate-600 hover:text-blue-600 transition-colors focus-ring rounded px-2 py-1"
+            >
+              <MessageCircle size={14} aria-hidden="true" />
+              Chat
+            </Link>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 active:bg-slate-950 transition-colors focus-ring"
+            >
+              Open App
+              <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -219,8 +229,8 @@ export default function LandingPage() {
       <footer className="border-t border-slate-200 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center text-white" aria-hidden="true">
-              <Sparkles size={12} />
+            <div className="w-6 h-6 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-[10px] tracking-tight" aria-hidden="true">
+              M
             </div>
             <span className="text-sm font-semibold text-slate-900">MedNemo</span>
           </div>

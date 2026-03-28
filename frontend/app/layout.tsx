@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ChatProvider, GlobalChat, ChatTrigger } from "@/components/chat";
+import { ChatProvider } from "@/components/chat";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -38,8 +38,6 @@ export default function RootLayout({
         </a>
         <ChatProvider>
           <TooltipProvider>{children}</TooltipProvider>
-          <GlobalChat />
-          <ChatTrigger />
         </ChatProvider>
       </body>
     </html>
