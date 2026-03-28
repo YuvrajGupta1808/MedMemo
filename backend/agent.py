@@ -1,4 +1,3 @@
-import base64
 import logging
 import os
 import sys
@@ -10,59 +9,36 @@ logger = logging.getLogger("RT.mednemo")
 
 load_dotenv()
 
-from railtracks.human_in_the_loop.local_chat_ui import ChatUI, UserMessageAttachment
+from railtracks.human_in_the_loop.local_chat_ui import ChatUI
 from railtracks.human_in_the_loop import HILMessage
 from railtracks.llm.message import UserMessage, AssistantMessage
 from railtracks.llm.history import MessageHistory
 from railtracks.interaction._call import call
 
-from src.agents.tools import (
-    create_patient_session,
-    list_patient_sessions,
-    ingest_document,
-    query_patient_documents,
-    transcribe_clinical_audio,
-    list_session_documents,
-    list_session_notes,
-)
-
-UPLOAD_DIR = "/tmp/mednemo_uploads"
+from src.agents.tools import query_patient_documents
 
 # LLM — reuses GEMINI_API_KEY from .env
 model = rt.llm.GeminiLLM("gemini-2.5-flash")
 
-# MedNemo Agent with all 7 tools
+# MedNemo Agent — query only
 MedNemoAgent = rt.agent_node(
     "MedNemo Agent",
-    tool_nodes=[
-        create_patient_session,
-        list_patient_sessions,
-        ingest_document,
-        query_patient_documents,
-        transcribe_clinical_audio,
-        list_session_documents,
-        list_session_notes,
-    ],
+    tool_nodes=[query_patient_documents],
     llm=model,
     system_message="""You are MedNemo, an AI medical assistant for doctors.
-You help manage patient sessions, ingest medical documents and audio recordings,
-and answer clinical questions using RAG (retrieval-augmented generation).
+You answer clinical questions about patients using retrieval-augmented generation (RAG) over their ingested medical documents.
 
-Capabilities:
-- Create and list patient sessions
-- Ingest PDF, JPEG, PNG medical documents into the current session
-- Transcribe clinical audio recordings with speaker diarization
-- Query ingested documents to answer clinical questions
-- List documents and audio notes in the current session
+How you work:
+- You have access to a query tool that searches the patient's ingested documents (lab reports, prescriptions, imaging results, clinical notes, transcripts).
+- When the doctor asks ANY question about a patient — symptoms, history, medications, lab results, diagnoses, treatment plans — ALWAYS use query_patient_documents to search the documents first.
+- Base your answers on the retrieved document content. Cite which documents/pages the information comes from.
+- If the query returns no relevant results, say so honestly rather than guessing.
+- You can have a natural conversation — greet the doctor, ask clarifying questions, explain medical findings in context.
 
-Always confirm which patient session is active before ingesting or querying.
-The user_id and session_id are already set in your context — you do not need to ask for them.
-
-File Attachments:
-- When users attach files, they are automatically saved to /tmp/mednemo_uploads/.
-- The saved file paths will appear in the message text.
-- Call ingest_document(file_path="...") for each file path listed.
-- Process files one at a time. Do NOT ask the user for file paths when paths are already provided.
+Important:
+- The active patient session is already set. All queries automatically search within that session's documents.
+- Do NOT say "I cannot provide information about individuals" — your entire purpose is to answer questions about the patient using their documents.
+- If asked about something not in the documents, say "I don't see information about that in the ingested documents for this session."
 """,
 )
 
@@ -70,8 +46,6 @@ File Attachments:
 @rt.function_node
 async def mednemo_chat():
     """Start an interactive chat session with MedNemo in the browser."""
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-
     chat_ui = ChatUI(auto_open=True)
     await chat_ui.connect()
     logger.info("Chat UI connected")
@@ -86,38 +60,16 @@ async def mednemo_chat():
             if message is None:
                 continue
 
-            # Save attachments to disk, collect paths
-            saved_paths = []
-            if message.attachments:
-                for att in message.attachments:
-                    if att.type == "file" and att.data:
-                        fname = att.name or "upload"
-                        data = att.data
-                        # Strip data URI prefix if present
-                        if data.startswith("data:"):
-                            data = data.split(",", 1)[-1]
-                        try:
-                            file_bytes = base64.b64decode(data)
-                            save_path = os.path.join(UPLOAD_DIR, fname)
-                            with open(save_path, "wb") as f:
-                                f.write(file_bytes)
-                            saved_paths.append(save_path)
-                            logger.info(f"Saved attachment: {save_path} ({len(file_bytes)} bytes)")
-                            await rt.broadcast(f"Saved file: {fname}")
-                        except Exception as e:
-                            logger.error(f"Failed to save {fname}: {e}", exc_info=True)
-                            saved_paths.append(f"(failed to save {fname}: {e})")
-
-            # Build message content with file paths appended
             content = message.content or ""
-            if saved_paths:
-                paths_list = "\n".join(f"- {p}" for p in saved_paths)
-                content += f"\n\nAttached files saved to disk:\n{paths_list}"
+
+            # If user attached files, inform them to use the web UI
+            if message.attachments:
+                content += "\n\n(Note: File attachments are not processed in this chat. Please use the web UI to ingest documents.)"
+                logger.info(f"User attached {len(message.attachments)} file(s) — ignored in query-only mode")
 
             logger.info(f"User: {content[:100]}")
             await rt.broadcast("Processing message...")
 
-            # Do NOT pass attachments to UserMessage — avoids Attachment class crash for PDFs
             msg_history.append(UserMessage(content=content))
 
             logger.info("Calling MedNemo agent...")
@@ -132,7 +84,6 @@ async def mednemo_chat():
 
         except Exception as e:
             logger.error(f"Chat loop error: {e}", exc_info=True)
-            # Send error to chat but DON'T crash the session
             try:
                 await chat_ui.send_message(
                     HILMessage(content=f"⚠️ An error occurred: {e}")
