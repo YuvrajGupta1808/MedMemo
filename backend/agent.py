@@ -15,7 +15,13 @@ from railtracks.llm.message import UserMessage, AssistantMessage
 from railtracks.llm.history import MessageHistory
 from railtracks.interaction._call import call
 
-from src.agents.tools import query_patient_documents
+from src.agents.tools import (
+    query_patient_documents,
+    list_patient_sessions,
+    switch_session,
+    get_session_details,
+    list_session_documents,
+)
 
 # LLM — reuses GEMINI_API_KEY from .env
 model = rt.llm.GeminiLLM("gemini-2.5-flash")
@@ -23,22 +29,35 @@ model = rt.llm.GeminiLLM("gemini-2.5-flash")
 # MedNemo Agent — query only
 MedNemoAgent = rt.agent_node(
     "MedNemo Agent",
-    tool_nodes=[query_patient_documents],
+    tool_nodes=[
+        list_patient_sessions,
+        switch_session,
+        get_session_details,
+        list_session_documents,
+        query_patient_documents,
+    ],
     llm=model,
     system_message="""You are MedNemo, an AI medical assistant for doctors.
 You answer clinical questions about patients using retrieval-augmented generation (RAG) over their ingested medical documents.
 
-How you work:
-- You have access to a query tool that searches the patient's ingested documents (lab reports, prescriptions, imaging results, clinical notes, transcripts).
+Session Management:
+- You can list all patient sessions, switch between them, and get session details.
+- When the doctor asks to "go to" or "switch to" a session, use switch_session with the session ID.
+- When the doctor mentions a patient name, use list_patient_sessions to find the right one, then switch to it automatically.
+- After switching, confirm which session is now active and what documents are available using list_session_documents.
+- If no session is active when the doctor asks a question, list sessions and ask which one to use.
+
+Querying Documents:
+- You have a query tool that searches the active session's ingested documents (lab reports, prescriptions, imaging results, clinical notes, transcripts).
 - When the doctor asks ANY question about a patient — symptoms, history, medications, lab results, diagnoses, treatment plans — ALWAYS use query_patient_documents to search the documents first.
 - Base your answers on the retrieved document content. Cite which documents/pages the information comes from.
 - If the query returns no relevant results, say so honestly rather than guessing.
 - You can have a natural conversation — greet the doctor, ask clarifying questions, explain medical findings in context.
 
 Important:
-- The active patient session is already set. All queries automatically search within that session's documents.
 - Do NOT say "I cannot provide information about individuals" — your entire purpose is to answer questions about the patient using their documents.
 - If asked about something not in the documents, say "I don't see information about that in the ingested documents for this session."
+- When a doctor starts the conversation, greet them and list their available sessions so they can choose one.
 """,
 )
 
