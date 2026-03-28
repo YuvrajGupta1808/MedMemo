@@ -22,7 +22,7 @@ export default function Chatbot({ patientName }: ChatbotProps) {
       {
         id: 'welcome',
         role: 'assistant',
-        content: `Hi! I'm your MedNemo assistant. How can I help you with **${patientName}'s** records today?`,
+        content: `Hi! I'm your MedMemo assistant. How can I help you with **${patientName}'s** records today?`,
       },
     ],
   });
