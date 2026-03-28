@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useChatPanel, type ChatAttachment } from './ChatProvider';
 import { ToolCallRenderer } from './tools/ToolCallRenderer';
+import { Streamdown } from 'streamdown';
 
 interface PatientChatProps {
   patientName: string;
@@ -115,7 +116,11 @@ export default function PatientChat({ patientName, patientId, sessionId }: Patie
                   ? 'bg-slate-900 text-white rounded-2xl rounded-br-md'
                   : 'bg-slate-50 text-slate-800 rounded-2xl rounded-bl-md border border-slate-100'
               }`}>
-                {m.content}
+                {m.role === 'assistant' ? (
+                  <Streamdown className="prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{m.content}</Streamdown>
+                ) : (
+                  m.content
+                )}
               {(m as any).toolInvocations?.map((inv: any) => (
                 <div key={inv.toolCallId} className="mt-2">
                   <ToolCallRenderer invocation={inv} />

@@ -8,6 +8,7 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { ToolCallRenderer } from './chat/tools/ToolCallRenderer';
+import { Streamdown } from 'streamdown';
 
 interface ChatbotProps {
   patientName: string;
@@ -84,7 +85,11 @@ export default function Chatbot({ patientName }: ChatbotProps) {
                       : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-md'
                   }`}
                 >
-                  {m.content}
+                  {m.role === 'assistant' ? (
+                    <Streamdown className="prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{m.content}</Streamdown>
+                  ) : (
+                    m.content
+                  )}
                   {(m as any).toolInvocations?.map((inv: any) => (
                     <div key={inv.toolCallId} className="mt-2">
                       <ToolCallRenderer invocation={inv} />

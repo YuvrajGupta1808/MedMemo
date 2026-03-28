@@ -21,6 +21,7 @@ import {
 import Link from 'next/link';
 import { MedMemoLogo } from '@/components/MedMemoLogo';
 import { useChatPanel, type ChatAttachment } from '@/components/chat/ChatProvider';
+import { Streamdown } from 'streamdown';
 
 export default function ChatPage() {
   const { attachments, addAttachment, removeAttachment, clearAttachments } = useChatPanel();
@@ -171,7 +172,11 @@ export default function ChatPage() {
                       ? 'bg-slate-100 text-slate-900 px-4 py-3 rounded-3xl rounded-br-lg'
                       : 'text-slate-800'
                   }`}>
-                    {m.content}
+                    {m.role === 'assistant' ? (
+                      <Streamdown className="prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">{m.content}</Streamdown>
+                    ) : (
+                      m.content
+                    )}
                     {(m as any).toolInvocations?.map((inv: any) => (
                       <div key={inv.toolCallId} className="mt-2">
                         <ToolCallRenderer invocation={inv} />
