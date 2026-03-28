@@ -15,7 +15,7 @@ MedMemo is a multimodal AI-powered medical document management platform that hel
 
 ## 1. Railtracks ADK Requirements
 
-> Reference: Railtracks ADK | GitHub — railtownai/railtracks | Conductr Observability
+> Reference: [Railtracks ADK](https://railtracks.org/) | [GitHub — railtownai/railtracks](https://github.com/railtownai/railtracks) | [Conductr Observability](https://railtown.ai/)
 
 Railtracks is an open-source agentic framework by Railtown AI for building and deploying autonomous AI agents, built for real-world orchestration, integration, and scale.
 
@@ -41,7 +41,7 @@ Railtracks is an open-source agentic framework by Railtown AI for building and d
 
 ## 2. assistant-ui Tool-Assisted UI Requirements
 
-> Reference: assistant-ui Documentation | Tools API | Generative UI
+> Reference: [assistant-ui Documentation](https://www.assistant-ui.com/) | [Tools API](https://www.assistant-ui.com/docs/guides/tools) | [Generative UI](https://www.assistant-ui.com/docs/guides/tools)
 
 assistant-ui is a TypeScript/React library providing unstyled, accessible building blocks for AI chat interfaces, with production-ready components and comprehensive tool integration.
 
@@ -83,7 +83,7 @@ assistant-ui is a TypeScript/React library providing unstyled, accessible buildi
 
 ## 3. Multimodal RAG Requirements
 
-> Reference: MMed-RAG (2025) — "Versatile Multimodal RAG System for Medical Vision Language Models" | awesome-multimodal-in-medical-imaging
+> Reference: [MMed-RAG (2025) — "Versatile Multimodal RAG System for Medical Vision Language Models"](https://arxiv.org/abs/2310.17011) | [awesome-multimodal-in-medical-imaging](https://github.com/Richard88888/awesome-multimodal-in-medical-imaging)
 
 ### 3.1 Document Ingestion
 
@@ -115,7 +115,7 @@ assistant-ui is a TypeScript/React library providing unstyled, accessible buildi
 
 ## 4. Augment Code CLI Requirements
 
-> Reference: Augment Code | IDE Agents | Intent Workspace
+> Reference: [Augment Code](https://www.augmentcode.com/) | [IDE Agents](https://www.augmentcode.com/) | [Intent Workspace](https://www.augmentcode.com/)
 
 Augment Code provides AI-powered software development with an industry-leading context engine that understands entire codebases across repository boundaries.
 
