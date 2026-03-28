@@ -6,47 +6,66 @@
   <title>Smart Form Builder — MedNemo</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; padding: 1.5rem; }
-    .header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; }
-    .placeholder { background: #fff; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 3rem; text-align: center; color: #64748b; }
-    .placeholder .icon { font-size: 3rem; margin-bottom: 1rem; }
-    .form-preview { margin-top: 1.5rem; text-align: left; }
-    .field { margin-bottom: 1rem; }
-    .field label { display: block; font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem; }
-    .field input { width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem; background: #f8fafc; }
-    .actions { display: flex; gap: 0.5rem; margin-top: 1.5rem; justify-content: center; }
-    .actions button { padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 0.875rem; cursor: pointer; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc; color: #1e293b; padding: 1.5rem; line-height: 1.5;
+    }
+    .header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .header h1 { font-size: 1.25rem; font-weight: 600; }
+    .header h1::before { content: '📝'; margin-right: 6px; }
+    .form-type-badge {
+      display: inline-block; padding: 4px 12px; background: #dbeafe;
+      color: #2563eb; border-radius: 20px; font-size: 13px; font-weight: 500;
+    }
+    #status {
+      text-align: center; padding: 3rem; color: #64748b;
+      background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;
+    }
+    #status .spinner { font-size: 2rem; margin-bottom: 0.75rem; animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .form-container {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 2rem; max-width: 720px; margin: 0 auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .form-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; color: #1e293b; border-bottom: 2px solid #2563eb; padding-bottom: 0.5rem; }
+    .field { margin-bottom: 1.25rem; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.3px; }
+    .field input, .field textarea, .field select {
+      width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px;
+      font-size: 0.9rem; font-family: inherit; color: #1e293b; background: #fff;
+      transition: border-color 0.15s;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px #2563eb22; }
+    .field textarea { min-height: 80px; resize: vertical; }
+    .field .readonly { background: #f1f5f9; color: #64748b; cursor: not-allowed; }
+    .actions { display: flex; gap: 0.75rem; margin-top: 1.75rem; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 1.25rem; }
+    .actions button { padding: 0.6rem 1.5rem; border-radius: 8px; font-size: 0.9rem; cursor: pointer; font-weight: 500; }
     .actions .primary { background: #2563eb; color: #fff; border: none; }
-    .actions .secondary { background: #fff; border: 1px solid #e2e8f0; }
+    .actions .primary:hover { background: #1d4ed8; }
+    .actions .secondary { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
+    .actions .secondary:hover { background: #f8fafc; }
+    .error-state { text-align: center; padding: 2rem; color: #dc2626; background: #fef2f2; border-radius: 12px; border: 1px solid #fecaca; }
+    .empty-state { text-align: center; padding: 3rem; color: #94a3b8; background: #fff; border-radius: 12px; border: 2px dashed #cbd5e1; }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 0.75rem; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .header, .actions { display: none !important; }
+      .form-container { box-shadow: none; border: none; padding: 0; }
+      .field input, .field textarea, .field select { border: none; border-bottom: 1px solid #000; border-radius: 0; padding-left: 0; background: #fff !important; color: #000 !important; }
+    }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>📝 Smart Form Builder</h1>
+    <h1>Smart Form Builder</h1>
+    <span class="form-type-badge" id="formTypeBadge" style="display:none"></span>
   </div>
-  <div class="placeholder">
-    <div class="icon">📋</div>
-    <h2>Auto-Populated Forms</h2>
-    <p>AI-generated referral, prescription, and prior authorization forms.</p>
-    <div class="form-preview">
-      <div class="field">
-        <label>Patient Name</label>
-        <input type="text" value="John Doe" readonly />
-      </div>
-      <div class="field">
-        <label>Referring Physician</label>
-        <input type="text" value="Dr. Smith" readonly />
-      </div>
-      <div class="field">
-        <label>Diagnosis</label>
-        <input type="text" value="Chronic lower back pain (M54.5)" readonly />
-      </div>
-    </div>
-    <div class="actions">
-      <button class="primary">📤 Export PDF</button>
-      <button class="secondary">✏️ Edit</button>
-    </div>
+  <div id="status">
+    <div class="spinner">⏳</div>
+    <p>Generating form…</p>
   </div>
+  <div id="formContainer" class="form-container" style="display:none;"></div>
   <script type="module" src="./main.ts"></script>
 </body>
 </html>

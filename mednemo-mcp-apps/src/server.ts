@@ -1,7 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import express from "express";
-import { z } from "zod";
 import {
   viewDocument,
   viewDocumentParams,
@@ -17,6 +16,16 @@ import {
   showPatientTimelineParams,
   showPatientTimelineToolName,
 } from "./patient-timeline.ts";
+import {
+  showLabCharts,
+  showLabChartsParams,
+  showLabChartsToolName,
+} from "./lab-charts.ts";
+import {
+  buildSmartForm,
+  buildSmartFormParams,
+  buildSmartFormToolName,
+} from "./smart-form.ts";
 
 const FASTAPI_BASE = process.env.FASTAPI_URL ?? "http://localhost:8001";
 const PORT = parseInt(process.env.PORT ?? "9000", 10);
@@ -101,28 +110,34 @@ server.tool(
 // Tool 3: show_lab_charts
 // ---------------------------------------------------------------------------
 server.tool(
-  "show_lab_charts",
+  showLabChartsToolName,
   "Display lab results as line charts with normal-range bands.",
   {
-    session_id: z.string().describe("The session ID"),
-    lab_type: z.string().optional().describe("Filter by lab type (e.g. CBC, BMP)"),
+    session_id: showLabChartsParams.shape.session_id,
+    lab_type: showLabChartsParams.shape.lab_type,
   },
   async ({ session_id, lab_type }) => {
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            tool: "show_lab_charts",
-            session_id,
-            lab_type: lab_type ?? null,
-            ui_url: `/apps/show-lab-charts/index.html?session_id=${session_id}${lab_type ? `&lab_type=${encodeURIComponent(lab_type)}` : ""}`,
-            status: "placeholder",
-          }),
-        },
-      ],
-    };
-  }
+    try {
+      const result = await showLabCharts({ session_id, lab_type });
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+      };
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              error: (err as Error).message,
+              session_id,
+              lab_type: lab_type ?? null,
+            }),
+          },
+        ],
+        isError: true,
+      };
+    }
+  },
 );
 
 // ---------------------------------------------------------------------------
@@ -161,28 +176,35 @@ server.tool(
 // Tool 5: build_smart_form
 // ---------------------------------------------------------------------------
 server.tool(
-  "build_smart_form",
+  buildSmartFormToolName,
   "Generate an auto-populated referral or prescription form.",
   {
-    session_id: z.string().describe("The session ID"),
-    form_type: z.string().describe("Form type: referral | prescription | prior_auth"),
+    session_id: buildSmartFormParams.shape.session_id,
+    form_type: buildSmartFormParams.shape.form_type,
+    patient_id: buildSmartFormParams.shape.patient_id,
   },
-  async ({ session_id, form_type }) => {
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            tool: "build_smart_form",
-            session_id,
-            form_type,
-            ui_url: `/apps/build-smart-form/index.html?session_id=${session_id}&form_type=${encodeURIComponent(form_type)}`,
-            status: "placeholder",
-          }),
-        },
-      ],
-    };
-  }
+  async ({ session_id, form_type, patient_id }) => {
+    try {
+      const result = await buildSmartForm({ session_id, form_type, patient_id });
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+      };
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              error: (err as Error).message,
+              session_id,
+              form_type,
+            }),
+          },
+        ],
+        isError: true,
+      };
+    }
+  },
 );
 
 // ---------------------------------------------------------------------------

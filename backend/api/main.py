@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
 
 from api.routers import health, ingest, notes, query, sessions
+from api.routers.forms import router as forms_router
 
 REQUIRED_ENV_VARS = ["WEAVIATE_URL", "WEAVIATE_API_KEY", "GEMINI_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_KEY"]
 missing = [v for v in REQUIRED_ENV_VARS if not os.environ.get(v)]
@@ -32,3 +33,4 @@ app.include_router(sessions.router)
 app.include_router(ingest.router)
 app.include_router(query.router)
 app.include_router(notes.router)
+app.include_router(forms_router, prefix="/forms", tags=["forms"])
