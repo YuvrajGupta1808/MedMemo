@@ -185,29 +185,29 @@ export default function PatientPage() {
           ) : user ? (
             <div className="max-w-4xl mx-auto">
               {/* Breadcrumb */}
-              <nav aria-label="Breadcrumb" className="mb-4">
-                <ol className="flex items-center gap-1.5 text-sm text-slate-500">
-                  <li><button onClick={() => router.push('/')} className="hover:text-slate-800 focus-ring rounded px-1 transition-colors">Dashboard</button></li>
-                  <li aria-hidden="true">/</li>
-                  <li className="text-slate-900 font-medium" aria-current="page">{user.external_id}</li>
+              <nav aria-label="Breadcrumb" className="mb-6">
+                <ol className="flex items-center gap-2 text-sm">
+                  <li><button onClick={() => router.push('/')} className="text-slate-500 hover:text-slate-700 focus-ring rounded px-1 transition-colors font-medium">Dashboard</button></li>
+                  <li aria-hidden="true" className="text-slate-300">/</li>
+                  <li className="text-blue-600 font-semibold" aria-current="page">{user.external_id}</li>
                 </ol>
               </nav>
 
               {/* Patient header */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xl shrink-0">
+              <div className="flex items-start gap-4 mb-8 pb-6 border-b border-slate-100">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-2xl shrink-0 shadow-md">
                   {user.external_id.slice(0, 2).toUpperCase()}
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900">{user.external_id}</h1>
-                  <p className="text-sm text-slate-600">
-                    Patient since {new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold text-slate-900 mb-1">{user.external_id}</h1>
+                  <p className="text-sm text-slate-500 font-medium">
+                    🩺 Patient since {new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
               </div>
 
               {/* Tab bar */}
-              <div role="tablist" aria-label="Patient sections" className="flex gap-1 bg-slate-100 p-1 rounded-xl mb-6 overflow-x-auto">
+              <div role="tablist" aria-label="Patient sections" className="flex gap-2 mb-8 border-b border-slate-200 overflow-x-auto">
                 {tabs.map((tab) => (
                   <button
                     key={tab.key}
@@ -215,13 +215,13 @@ export default function PatientPage() {
                     aria-selected={activeTab === tab.key}
                     aria-controls={`panel-${tab.key}`}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors focus-ring whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-all whitespace-nowrap focus-ring relative ${
                       activeTab === tab.key
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-800 hover:bg-white/50'
+                        ? 'text-blue-600 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-gradient-to-r after:from-blue-500 after:to-blue-600'
+                        : 'text-slate-600 hover:text-slate-800'
                     }`}
                   >
-                    <span aria-hidden="true">{tab.icon}</span>
+                    <span aria-hidden="true" className={`text-base ${activeTab === tab.key ? 'text-blue-600' : 'text-slate-400'}`}>{tab.icon}</span>
                     {tab.label}
                   </button>
                 ))}
@@ -388,29 +388,33 @@ function DocumentsPanel({ documents, sessions, user, reload }: { documents: Docu
   return (
     <div className="flex flex-col gap-6">
       {/* Upload section */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5">
-        <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2"><Upload size={14} /> Upload Documents</h3>
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 p-6">
+        <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2"><Upload size={16} className="text-blue-600" /> Upload Documents</h3>
         {!sessionId ? (
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Loader2 size={14} className="animate-spin" /> Loading session…
           </div>
         ) : (
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-600">Files</label>
-            <input ref={fileRef} type="file" accept=".pdf,.jpeg,.jpg,.png" multiple className="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:text-sm file:font-medium" />
+        <div className="flex flex-col sm:flex-row items-end gap-4">
+          <div className="flex-1 flex flex-col gap-2">
+            <label className="text-sm font-semibold text-slate-700">Select Files</label>
+            <input ref={fileRef} type="file" accept=".pdf,.jpeg,.jpg,.png" multiple className="text-sm px-4 py-2.5 border border-blue-200 rounded-xl bg-white file:mr-2 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-blue-100 file:text-blue-700 file:text-sm file:font-semibold hover:border-blue-300 transition-colors" />
+            <p className="text-xs text-slate-500">Supported: PDF, JPG, PNG</p>
           </div>
-          <button onClick={handleUpload} disabled={uploading} className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
-            {uploading && <Loader2 size={14} className="animate-spin" />} Upload &amp; Ingest
+          <button onClick={handleUpload} disabled={uploading} className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-200 disabled:opacity-50 transition-all whitespace-nowrap">
+            {uploading && <Loader2 size={16} className="animate-spin" />} {uploading ? 'Uploading...' : 'Upload & Ingest'}
           </button>
         </div>
         )}
         {uploadResults && (
-          <div className="mt-3 space-y-1">
+          <div className="mt-4 space-y-2 bg-white rounded-xl p-4">
             {uploadResults.map((r, i) => (
-              <div key={i} className={`flex items-center gap-2 text-sm ${r.status === 'error' ? 'text-red-600' : 'text-green-700'}`}>
-                {r.status === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
-                {r.file_name} {r.status === 'error' ? `— ${r.error}` : `— ${r.pages_ingested} pages ingested`}
+              <div key={i} className={`flex items-start gap-3 text-sm ${r.status === 'error' ? 'text-red-700' : 'text-green-700'}`}>
+                <span className="mt-0.5">{r.status === 'error' ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}</span>
+                <div>
+                  <p className="font-medium">{r.file_name}</p>
+                  <p className="text-xs opacity-80">{r.status === 'error' ? r.error : `${r.pages_ingested} pages ingested`}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -443,29 +447,32 @@ function DocumentsPanel({ documents, sessions, user, reload }: { documents: Docu
       {documents.length === 0 ? (
         <EmptyPanel icon={<FileText size={28} />} title="No documents yet" description="Upload documents above to get started." />
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-25 border-b border-slate-200">
+            <h3 className="text-sm font-bold text-slate-900">Documents</h3>
+          </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100">
-                <th className="text-left px-5 py-3 font-medium text-slate-600">File Name</th>
-                <th className="text-left px-5 py-3 font-medium text-slate-600">Type</th>
-                <th className="text-right px-5 py-3 font-medium text-slate-600">Pages</th>
-                <th className="text-left px-5 py-3 font-medium text-slate-600">Status</th>
-                <th className="text-left px-5 py-3 font-medium text-slate-600">Date</th>
-                <th className="px-5 py-3 w-12" />
+              <tr className="border-b border-slate-100 bg-slate-50">
+                <th className="text-left px-6 py-3 font-semibold text-slate-700">File Name</th>
+                <th className="text-left px-6 py-3 font-semibold text-slate-700">Type</th>
+                <th className="text-center px-6 py-3 font-semibold text-slate-700">Pages</th>
+                <th className="text-left px-6 py-3 font-semibold text-slate-700">Status</th>
+                <th className="text-left px-6 py-3 font-semibold text-slate-700">Date</th>
+                <th className="px-6 py-3 w-12" />
               </tr>
             </thead>
             <tbody>
               {documents.map((d) => (
-                <tr key={d.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                  <td className="px-5 py-3 font-medium text-slate-900">{d.file_name}</td>
-                  <td className="px-5 py-3 text-slate-600">{d.file_type.toUpperCase()}</td>
-                  <td className="px-5 py-3 text-right tabular-nums text-slate-600">{d.pages_ingested}</td>
-                  <td className="px-5 py-3 text-slate-600">{d.status}</td>
-                  <td className="px-5 py-3 text-slate-600">{new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                  <td className="px-5 py-3">
-                    <button onClick={() => handleDeleteDoc(d)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" aria-label={`Delete ${d.file_name}`}>
-                      <Trash2 size={14} />
+                <tr key={d.id} className="border-b border-slate-50 hover:bg-blue-50 transition-colors group">
+                  <td className="px-6 py-4 font-medium text-slate-900 group-hover:text-blue-700">{d.file_name}</td>
+                  <td className="px-6 py-4 text-slate-600"><span className="inline-flex items-center px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">{d.file_type.toUpperCase()}</span></td>
+                  <td className="px-6 py-4 text-center tabular-nums text-slate-600">{d.pages_ingested}</td>
+                  <td className="px-6 py-4"><span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${d.status === 'ingested' ? 'bg-green-50 text-green-700' : d.status === 'processing' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-700'}`}>{d.status}</span></td>
+                  <td className="px-6 py-4 text-slate-600 text-xs">{new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                  <td className="px-6 py-4">
+                    <button onClick={() => handleDeleteDoc(d)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100" aria-label={`Delete ${d.file_name}`}>
+                      <Trash2 size={16} />
                     </button>
                   </td>
                 </tr>
