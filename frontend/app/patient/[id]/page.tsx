@@ -570,6 +570,8 @@ function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions
   const [actionError, setActionError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const audioRef = useRef<HTMLInputElement>(null);
+  const [audioFileName, setAudioFileName] = useState<string | null>(null);
+  const [audioDragOver, setAudioDragOver] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recSeconds, setRecSeconds] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -669,41 +671,99 @@ function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions
         </div>
 
         {/* Divider */}
-        <div className="flex items-center gap-3 text-xs text-slate-400 my-2">
+        <div className="flex items-center gap-3 text-xs text-slate-400 my-1">
           <div className="flex-1 h-px bg-slate-200" />
           <span>or upload a file</span>
           <div className="flex-1 h-px bg-slate-200" />
         </div>
 
-        {/* Audio file picker */}
+        {/* Audio file drop zone */}
         {!sessionId ? (
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <Loader2 size={14} className="animate-spin" /> Loading session…
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
+          <div className="flex flex-col gap-3">
+            <div
               onClick={() => audioRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 active:bg-slate-300 transition-colors focus-ring"
+              onDragOver={(e) => { e.preventDefault(); setAudioDragOver(true); }}
+              onDragLeave={() => setAudioDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setAudioDragOver(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file && file.type.startsWith('audio/')) {
+                  const dt = new DataTransfer();
+                  dt.items.add(file);
+                  if (audioRef.current) { audioRef.current.files = dt.files; }
+                  setAudioFileName(file.name);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') audioRef.current?.click(); }}
+              aria-label="Drop audio file here or click to browse"
+              className={`flex items-center gap-3 rounded-xl border border-dashed px-4 py-3 cursor-pointer transition-all ${
+                audioDragOver
+                  ? 'border-blue-400 bg-blue-50/60'
+                  : audioFileName
+                    ? 'border-blue-200 bg-blue-50/30'
+                    : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-100/50'
+              }`}
             >
-              <Paperclip size={15} />
-              {audioRef.current?.files?.[0]?.name || 'Choose audio file'}
-            </button>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${audioFileName ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
+                <Upload size={15} />
+              </div>
+              <div className="flex-1 min-w-0">
+                {audioFileName ? (
+                  <p className="text-sm font-medium text-slate-800 truncate">{audioFileName}</p>
+                ) : (
+                  <p className="text-sm text-slate-500">Drop audio file or <span className="text-blue-600 font-medium">browse</span></p>
+                )}
+                <p className="text-[11px] text-slate-400 mt-0.5">MP3, WAV, WebM, M4A</p>
+              </div>
+              {audioFileName && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAudioFileName(null);
+                    if (audioRef.current) audioRef.current.value = '';
+                  }}
+                  className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors focus-ring"
+                  aria-label="Remove selected file"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
             <input
               ref={audioRef}
               type="file"
               accept="audio/*"
               className="hidden"
               aria-label="Select audio file"
+              onChange={() => {
+                const name = audioRef.current?.files?.[0]?.name;
+                setAudioFileName(name || null);
+              }}
             />
             <button
               onClick={handleUploadAndTranscribe}
-              disabled={step !== 'idle' || isRecording}
-              className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-ring"
+              disabled={step !== 'idle' || isRecording || !audioFileName}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 active:bg-slate-950 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-ring"
             >
-              {step !== 'idle' && <Loader2 size={14} className="animate-spin" />}
-              {step === 'uploading' ? 'Uploading…' : step === 'transcribing' ? 'Transcribing…' : 'Transcribe'}
+              {step !== 'idle' ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  {step === 'uploading' ? 'Uploading…' : 'Transcribing…'}
+                </>
+              ) : (
+                <>
+                  <Upload size={15} />
+                  Upload & Transcribe
+                </>
+              )}
             </button>
           </div>
         )}
