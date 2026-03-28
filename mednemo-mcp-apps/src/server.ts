@@ -6,7 +6,7 @@ import {
   viewDocument,
   viewDocumentParams,
   viewDocumentToolName,
-} from "./document-viewer.js";
+} from "./document-viewer.ts";
 
 const FASTAPI_BASE = process.env.FASTAPI_URL ?? "http://localhost:8001";
 const PORT = parseInt(process.env.PORT ?? "9000", 10);
