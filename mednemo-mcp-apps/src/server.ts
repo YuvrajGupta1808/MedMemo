@@ -12,6 +12,11 @@ import {
   showRagSourcesParams,
   showRagSourcesToolName,
 } from "./rag-sources.ts";
+import {
+  showPatientTimeline,
+  showPatientTimelineParams,
+  showPatientTimelineToolName,
+} from "./patient-timeline.ts";
 
 const FASTAPI_BASE = process.env.FASTAPI_URL ?? "http://localhost:8001";
 const PORT = parseInt(process.env.PORT ?? "9000", 10);
@@ -124,26 +129,32 @@ server.tool(
 // Tool 4: show_patient_timeline
 // ---------------------------------------------------------------------------
 server.tool(
-  "show_patient_timeline",
+  showPatientTimelineToolName,
   "Show a color-coded chronological timeline of patient events.",
   {
-    session_id: z.string().describe("The session ID"),
+    session_id: showPatientTimelineParams.shape.session_id,
   },
   async ({ session_id }) => {
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            tool: "show_patient_timeline",
-            session_id,
-            ui_url: `/apps/show-patient-timeline/index.html?session_id=${session_id}`,
-            status: "placeholder",
-          }),
-        },
-      ],
-    };
-  }
+    try {
+      const result = await showPatientTimeline({ session_id });
+      return {
+        content: [{ type: "text", text: JSON.stringify(result) }],
+      };
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              error: (err as Error).message,
+              session_id,
+            }),
+          },
+        ],
+        isError: true,
+      };
+    }
+  },
 );
 
 // ---------------------------------------------------------------------------
