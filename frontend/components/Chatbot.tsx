@@ -7,6 +7,7 @@ import {
   Loader2,
   Stethoscope,
 } from 'lucide-react';
+import { ToolCallRenderer } from './chat/tools/ToolCallRenderer';
 
 interface ChatbotProps {
   patientName: string;
@@ -88,6 +89,11 @@ export default function Chatbot({ patientName }: ChatbotProps) {
                   }`}
                 >
                   {m.content}
+                  {(m as any).toolInvocations?.map((inv: any) => (
+                    <div key={inv.toolCallId} className="mt-2">
+                      <ToolCallRenderer invocation={inv} />
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}

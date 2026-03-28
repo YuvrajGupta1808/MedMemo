@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useChatPanel, type ChatAttachment } from './ChatProvider';
+import { ToolCallRenderer } from './tools/ToolCallRenderer';
 
 interface PatientChatProps {
   patientName: string;
@@ -118,6 +119,11 @@ export default function PatientChat({ patientName, patientId }: PatientChatProps
                   : 'bg-slate-50 text-slate-800 rounded-2xl rounded-bl-md border border-slate-100'
               }`}>
                 {m.content}
+              {(m as any).toolInvocations?.map((inv: any) => (
+                <div key={inv.toolCallId} className="mt-2">
+                  <ToolCallRenderer invocation={inv} />
+                </div>
+              ))}
               </div>
             </div>
           ))}
