@@ -15,7 +15,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { fetchUsers, fetchSessions, type Patient, type Session } from '@/lib/supabase';
+import { X, Loader2 } from 'lucide-react';
+import { fetchUsers, fetchSessions, createUser, type Patient, type Session } from '@/lib/supabase';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -142,6 +144,7 @@ export default function DashboardPage() {
                 />
               </div>
               <button
+                onClick={() => setShowAddModal(true)}
                 className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors focus-ring shrink-0"
                 aria-label="Add new patient"
               >
@@ -216,9 +219,163 @@ export default function DashboardPage() {
           )}
         </div>
       </main>
+
+      {/* Add Patient Modal */}
+      {showAddModal && (
+        <AddPatientModal
+          onClose={() => setShowAddModal(false)}
+          onCreated={() => {
+            setShowAddModal(false);
+            loadData();
+          }}
+        />
+      )}
     </div>
   );
 }
+
+function AddPatientModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [patientId, setPatientId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  // Focus input on mount
+  React.useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Close on Escape
+  React.useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = patientId.trim();
+    if (!trimmed) return;
+
+    setSaving(true);
+    setModalError(null);
+    try {
+      await createUser(trimmed);
+      onCreated();
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : 'Failed to create patient');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add new patient"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Modal */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-slate-900">Add New Patient</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors focus-ring"
+            aria-label="Close dialog"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label
+              htmlFor="patient-id"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
+              Patient ID
+            </label>
+            <input
+              ref={inputRef}
+              id="patient-id"
+              type="text"
+              value={patientId}
+              onChange={(e) => setPatientId(e.target.value)}
+              placeholder="e.g. john.doe@email.com or patient name"
+              className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow placeholder:text-slate-400"
+              required
+              disabled={saving}
+              autoComplete="off"
+            />
+            <p className="text-xs text-slate-500 mt-1.5">
+              This is the unique identifier for the patient (email, name, or MRN).
+            </p>
+          </div>
+
+          {/* Error */}
+          {modalError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 p-3 mb-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700"
+            >
+              <AlertCircle size={16} className="shrink-0 mt-0.5" aria-hidden="true" />
+              <span>{modalError}</span>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors focus-ring disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !patientId.trim()}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition-colors focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                  Creating…
+                </>
+              ) : (
+                <>
+                  <Plus size={14} aria-hidden="true" />
+                  Add Patient
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 
 function NavItem({
   icon,

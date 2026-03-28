@@ -55,6 +55,28 @@ export interface Note {
   created_at: string;
 }
 
+// ---------- Mutations ----------
+
+export async function createUser(externalId: string): Promise<Patient> {
+  const sb = getSupabase();
+  // Check if user already exists
+  const { data: existing } = await sb
+    .from('users')
+    .select('*')
+    .eq('external_id', externalId)
+    .limit(1);
+  if (existing && existing.length > 0) {
+    throw new Error(`A patient with ID "${externalId}" already exists.`);
+  }
+  const { data, error } = await sb
+    .from('users')
+    .insert({ external_id: externalId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Patient;
+}
+
 // ---------- Queries ----------
 
 export async function fetchUsers() {
