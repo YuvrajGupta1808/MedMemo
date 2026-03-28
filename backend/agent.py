@@ -42,6 +42,13 @@ Capabilities:
 
 Always confirm which patient session is active before ingesting or querying.
 The user_id and session_id are already set in your context — you do not need to ask for them.
+
+File Attachments:
+- When users attach files (PDF, JPEG, PNG) via the chat Attachments tab, the file data is available as base64-encoded content in the message attachments.
+- To ingest an attached file, call `ingest_document` with `file_name` (the attachment filename) and `file_data` (the base64 content from the attachment). Do NOT use `file_path` for attached files.
+- Process each attached file one at a time, confirming ingestion of each before moving to the next.
+- Do NOT ask users for file paths when files are already attached to the message — use the attachment data directly.
+- If no files are attached but the user mentions a file, then ask for the file path.
 """,
 )
 
