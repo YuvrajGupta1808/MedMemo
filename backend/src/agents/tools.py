@@ -1,11 +1,14 @@
 """Railtracks function_node tools for MedNemo agent operations."""
 import base64
+import logging
 import os
 
 import railtracks as rt
 
 import src.notes.supabase_store as db
 from src.rag.pipeline_manager import PipelineManager
+
+logger = logging.getLogger("RT.mednemo.tools")
 
 _pipeline = PipelineManager()  # module-level singleton
 
@@ -20,11 +23,14 @@ def create_patient_session(name: str) -> str:
     """
     try:
         user_id = rt.context.get("user_id")
+        logger.info(f"Creating session '{name}' for user {user_id}")
         user = db.get_or_create_user(user_id)
         session = db.create_session(user["id"], name)
         rt.context.put("session_id", session["id"])  # store for subsequent tools
+        logger.info(f"Session created: {session['id']}")
         return f"Session '{name}' created with ID: {session['id']}"
     except Exception as e:
+        logger.error(f"create_patient_session failed: {e}", exc_info=True)
         return f"Error in create_patient_session: {e}"
 
 
@@ -36,13 +42,17 @@ def list_patient_sessions() -> str:
     """
     try:
         user_id = rt.context.get("user_id")
+        logger.info(f"Listing sessions for user {user_id}")
         user = db.get_or_create_user(user_id)
         sessions = db.list_sessions(user["id"])
         if not sessions:
+            logger.info("Found 0 session(s)")
             return "No sessions found."
+        logger.info(f"Found {len(sessions)} session(s)")
         lines = [f"- {s['name']} (ID: {s['id']})" for s in sessions]
         return "Sessions:\n" + "\n".join(lines)
     except Exception as e:
+        logger.error(f"list_patient_sessions failed: {e}", exc_info=True)
         return f"Error in list_patient_sessions: {e}"
 
 
@@ -56,12 +66,14 @@ def ingest_document(file_path: str, file_type: str = "") -> str:
         Confirmation with the number of pages ingested.
     """
     try:
+        logger.info(f"Ingesting: {file_path} (type={file_type})")
         if not file_type:
             ext = os.path.splitext(file_path)[1].lower().lstrip(".")
             ext_map = {"pdf": "pdf", "jpg": "jpeg", "jpeg": "jpeg", "png": "png"}
             file_type = ext_map.get(ext, "")
             if not file_type:
                 return f"Error: cannot detect file type from '{file_path}'. Provide file_type explicitly."
+            logger.info(f"Detected file_type: {file_type}")
 
         file_name = os.path.basename(file_path)
         user_id = rt.context.get("user_id")
@@ -71,15 +83,21 @@ def ingest_document(file_path: str, file_type: str = "") -> str:
 
         with open(file_path, "rb") as f:
             file_bytes = f.read()
+        logger.info(f"Read {len(file_bytes)} bytes from disk")
 
         content_type = {"pdf": "application/pdf", "jpeg": "image/jpeg", "png": "image/png"}[file_type]
         storage_path = db.upload_file(file_bytes, file_name, content_type, internal_uid, session_id)
+        logger.info(f"Uploaded to storage: {storage_path}")
         doc = db.create_document_record(internal_uid, session_id, file_name, file_type, storage_path)
+        logger.info(f"Document record: {doc['id']}")
         db.update_document_status(doc["id"], "processing")
+        logger.info("Processing pages...")
         pages = _pipeline.ingest(file_bytes, doc["id"], file_type, internal_uid, session_id)
         db.update_document_status(doc["id"], "ingested", pages)
+        logger.info(f"Ingestion complete: {pages} page(s) for {file_name}")
         return f"Ingested '{file_name}' — {pages} page(s) stored in session."
     except Exception as e:
+        logger.error(f"ingest_document failed: {e}", exc_info=True)
         return f"Error in ingest_document: {e}"
 
 
@@ -94,9 +112,11 @@ def query_patient_documents(question: str, limit: int = 3) -> str:
     """
     try:
         session_id = rt.context.get("session_id")
+        logger.info(f"Querying: '{question[:80]}' limit={limit} session={session_id}")
         result = _pipeline.query(question, limit=min(limit, 10), session_id=session_id)
         answer = result.get("answer", "No answer generated.")
         pages = result.get("pages", [])
+        logger.info(f"Query returned {len(pages)} page(s)")
         page_refs = ", ".join(
             f"doc {p.get('document_id', '')[:8]}… p.{p.get('page_number', '?')}"
             for p in pages
@@ -104,6 +124,7 @@ def query_patient_documents(question: str, limit: int = 3) -> str:
         )
         return f"Answer: {answer}\n\nSources: {page_refs if page_refs else 'transcript/audio notes'}"
     except Exception as e:
+        logger.error(f"query_patient_documents failed: {e}", exc_info=True)
         return f"Error in query_patient_documents: {e}"
 
 
@@ -119,6 +140,7 @@ def transcribe_clinical_audio(audio_path: str, mime_type: str = "audio/wav") -> 
     try:
         from src.notes.note_taker import NoteTaker
 
+        logger.info(f"Transcribing: {audio_path} ({mime_type})")
         user_id = rt.context.get("user_id")
         session_id = rt.context.get("session_id")
         user = db.get_or_create_user(user_id)
@@ -126,16 +148,22 @@ def transcribe_clinical_audio(audio_path: str, mime_type: str = "audio/wav") -> 
 
         with open(audio_path, "rb") as f:
             audio_bytes = f.read()
+        logger.info(f"Read {len(audio_bytes)} bytes of audio")
 
         storage_path = db.upload_audio(audio_bytes, audio_path.split("/")[-1], mime_type, internal_uid, session_id)
+        logger.info("Uploaded audio to storage")
+        logger.info("Running Gemini transcription...")
         transcript = NoteTaker().transcribe(audio_bytes, mime_type)
+        logger.info(f"Transcription: {len(transcript['segments'])} segments")
         note = db.save_note(internal_uid, session_id, storage_path, transcript)
         _pipeline.ingest_transcript(transcript, note["id"], internal_uid, session_id)
+        logger.info("Transcript ingested into RAG")
         return (
             f"Transcription complete. Summary: {transcript['summary']}\n"
             f"{len(transcript['segments'])} speaker segment(s) ingested into RAG."
         )
     except Exception as e:
+        logger.error(f"transcribe_clinical_audio failed: {e}", exc_info=True)
         return f"Error in transcribe_clinical_audio: {e}"
 
 
@@ -147,13 +175,17 @@ def list_session_documents() -> str:
     """
     try:
         session_id = rt.context.get("session_id")
+        logger.info(f"Listing docs for session {session_id}")
         docs = db.list_documents_for_session(session_id)
         if not docs:
+            logger.info("Found 0 document(s)")
             return "No documents in this session."
+        logger.info(f"Found {len(docs)} document(s)")
         icons = {"ingested": "✅", "processing": "⏳", "failed": "❌", "pending": "🕐"}
         lines = [f"{icons.get(d['status'], '?')} {d['file_name']} — {d['pages_ingested']} page(s)" for d in docs]
         return "Documents:\n" + "\n".join(lines)
     except Exception as e:
+        logger.error(f"list_session_documents failed: {e}", exc_info=True)
         return f"Error in list_session_documents: {e}"
 
 
@@ -165,10 +197,14 @@ def list_session_notes() -> str:
     """
     try:
         session_id = rt.context.get("session_id")
+        logger.info(f"Listing notes for session {session_id}")
         notes = db.list_notes(session_id)
         if not notes:
+            logger.info("Found 0 note(s)")
             return "No clinical notes in this session."
+        logger.info(f"Found {len(notes)} note(s)")
         lines = [f"[{n['created_at']}] {n['summary']}" for n in notes]
         return "Clinical Notes:\n" + "\n".join(lines)
     except Exception as e:
+        logger.error(f"list_session_notes failed: {e}", exc_info=True)
         return f"Error in list_session_notes: {e}"
