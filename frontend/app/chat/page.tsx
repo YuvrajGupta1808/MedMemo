@@ -13,6 +13,9 @@ import {
   Trash2,
   ChevronLeft,
   Sparkles,
+  Upload,
+  Search,
+  User,
 } from 'lucide-react';
 import Link from 'next/link';
 import { MedMemoLogo } from '@/components/MedMemoLogo';
@@ -84,10 +87,10 @@ export default function ChatPage() {
   };
 
   const suggestions = [
-    { label: 'Summarize a patient', prompt: 'Summarize all records for patient ' },
-    { label: 'Upload & analyze', prompt: '' },
-    { label: 'Find lab results', prompt: 'Find recent lab results for ' },
-    { label: 'Start voice session', prompt: '' },
+    { label: 'Summarize a patient', prompt: 'Summarize all records for patient ', icon: User },
+    { label: 'Upload & analyze', prompt: '', icon: Upload },
+    { label: 'Find lab results', prompt: 'Find recent lab results for ', icon: Search },
+    { label: 'Start voice session', prompt: '', icon: Mic },
   ];
 
   return (
@@ -122,29 +125,33 @@ export default function ChatPage() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {!hasMessages ? (
-          /* ── Empty state: Gemini-style centered hero ── */
+          /* ── Empty state: centered hero ── */
           <div className="flex-1 flex flex-col items-center justify-center px-4">
-            <MedMemoLogo size={64} className="rounded-3xl mb-6" />
-            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-2 text-center">
+            <MedMemoLogo size={56} className="rounded-2xl mb-5" />
+            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 mb-1.5 text-center">
               What can I help with?
             </h1>
-            <p className="text-base text-slate-500 mb-10 text-center max-w-md">
+            <p className="text-sm text-slate-400 mb-8 text-center max-w-sm">
               Ask about patients, upload documents, or record a session.
             </p>
-            <div className="flex flex-wrap justify-center gap-2 mb-10 max-w-lg">
-              {suggestions.map((s) => (
-                <button
-                  key={s.label}
-                  onClick={() => {
-                    if (s.label === 'Upload & analyze') fileInputRef.current?.click();
-                    else if (s.label === 'Start voice session') toggleRecording();
-                    else { setInput(s.prompt); inputRef.current?.focus(); }
-                  }}
-                  className="px-4 py-2 text-sm font-medium bg-slate-100 text-slate-700 rounded-full hover:bg-slate-200 active:bg-slate-300 transition-colors focus-ring"
-                >
-                  {s.label}
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-2 max-w-sm w-full mb-10">
+              {suggestions.map((s) => {
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={s.label}
+                    onClick={() => {
+                      if (s.label === 'Upload & analyze') fileInputRef.current?.click();
+                      else if (s.label === 'Start voice session') toggleRecording();
+                      else { setInput(s.prompt); inputRef.current?.focus(); }
+                    }}
+                    className="flex items-center gap-2.5 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl border border-slate-150 bg-white hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 active:bg-slate-100 transition-all focus-ring"
+                  >
+                    <Icon size={15} className="text-slate-400 shrink-0" />
+                    {s.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : (
