@@ -208,3 +208,87 @@ def list_session_notes() -> str:
     except Exception as e:
         logger.error(f"list_session_notes failed: {e}", exc_info=True)
         return f"Error in list_session_notes: {e}"
+
+
+@rt.function_node
+def get_session_details(session_id: str) -> str:
+    """Get details about a specific patient session.
+    Args:
+        session_id: The session UUID.
+    Returns:
+        Session details including name, creation date, and ID.
+    """
+    try:
+        logger.info(f"Getting session details: {session_id}")
+        session = db.get_session(session_id)
+        if not session:
+            return f"Session '{session_id}' not found."
+        logger.info(f"Session found: {session['name']}")
+        return f"Session: {session['name']}\nID: {session['id']}\nCreated: {session.get('created_at', 'unknown')}"
+    except Exception as e:
+        logger.error(f"get_session_details failed: {e}", exc_info=True)
+        return f"Error in get_session_details: {e}"
+
+
+@rt.function_node
+def delete_session(session_id: str) -> str:
+    """Delete a patient session and ALL its documents permanently.
+    Args:
+        session_id: The session UUID to delete.
+    Returns:
+        Confirmation of deletion.
+    """
+    try:
+        logger.info(f"Deleting session: {session_id}")
+        session = db.get_session(session_id)
+        if not session:
+            return f"Session '{session_id}' not found."
+        _pipeline.delete_session_documents(session_id)
+        db.delete_session(session_id)
+        logger.info(f"Session deleted: {session_id}")
+        return f"Session '{session['name']}' (ID: {session_id}) and all its documents have been permanently deleted."
+    except Exception as e:
+        logger.error(f"delete_session failed: {e}", exc_info=True)
+        return f"Error in delete_session: {e}"
+
+
+@rt.function_node
+def delete_document(document_id: str) -> str:
+    """Delete a specific document from the system permanently.
+    Args:
+        document_id: The document UUID to delete.
+    Returns:
+        Confirmation of deletion.
+    """
+    try:
+        logger.info(f"Deleting document: {document_id}")
+        doc = db.delete_document(document_id)
+        if not doc:
+            return f"Document '{document_id}' not found."
+        _pipeline.delete_document(document_id)
+        logger.info(f"Document deleted: {document_id}")
+        return f"Document '{doc.get('file_name', document_id)}' has been permanently deleted."
+    except Exception as e:
+        logger.error(f"delete_document failed: {e}", exc_info=True)
+        return f"Error in delete_document: {e}"
+
+
+@rt.function_node
+def switch_session(session_id: str) -> str:
+    """Switch the active patient session. All subsequent queries and operations will use this session.
+    Args:
+        session_id: The session UUID to switch to.
+    Returns:
+        Confirmation of the switch with session details.
+    """
+    try:
+        logger.info(f"Switching to session: {session_id}")
+        session = db.get_session(session_id)
+        if not session:
+            return f"Session '{session_id}' not found."
+        rt.context.put("session_id", session_id)
+        logger.info(f"Switched to session: {session['name']} ({session_id})")
+        return f"Switched to session '{session['name']}' (ID: {session_id}). All queries will now search this session's documents."
+    except Exception as e:
+        logger.error(f"switch_session failed: {e}", exc_info=True)
+        return f"Error in switch_session: {e}"
