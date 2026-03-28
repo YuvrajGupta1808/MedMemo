@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Sources — MedNemo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; padding: 1.5rem; }
+    .header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; }
+    .placeholder { background: #fff; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 3rem; text-align: center; color: #64748b; }
+    .placeholder .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .chunk { background: #f1f5f9; border-radius: 8px; padding: 1rem; margin-top: 1rem; text-align: left; }
+    .chunk .score { font-size: 0.75rem; color: #2563eb; font-weight: 600; }
+    .chunk .text { font-size: 0.875rem; margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔍 RAG Source Explorer</h1>
+  </div>
+  <div class="placeholder">
+    <div class="icon">📊</div>
+    <h2>Retrieval Source Chunks</h2>
+    <p>Ranked chunks with relevance scores and highlighted passages.</p>
+    <div class="chunk">
+      <span class="score">Relevance: 0.95</span>
+      <div class="text">"Patient presents with chronic lower back pain..." — page 3</div>
+    </div>
+    <div class="chunk">
+      <span class="score">Relevance: 0.82</span>
+      <div class="text">"MRI results show mild disc herniation at L4-L5..." — page 7</div>
+    </div>
+  </div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

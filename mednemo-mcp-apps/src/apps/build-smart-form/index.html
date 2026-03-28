@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Form Builder — MedNemo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; padding: 1.5rem; }
+    .header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; }
+    .placeholder { background: #fff; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 3rem; text-align: center; color: #64748b; }
+    .placeholder .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .form-preview { margin-top: 1.5rem; text-align: left; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 0.25rem; }
+    .field input { width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.875rem; background: #f8fafc; }
+    .actions { display: flex; gap: 0.5rem; margin-top: 1.5rem; justify-content: center; }
+    .actions button { padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 0.875rem; cursor: pointer; }
+    .actions .primary { background: #2563eb; color: #fff; border: none; }
+    .actions .secondary { background: #fff; border: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📝 Smart Form Builder</h1>
+  </div>
+  <div class="placeholder">
+    <div class="icon">📋</div>
+    <h2>Auto-Populated Forms</h2>
+    <p>AI-generated referral, prescription, and prior authorization forms.</p>
+    <div class="form-preview">
+      <div class="field">
+        <label>Patient Name</label>
+        <input type="text" value="John Doe" readonly />
+      </div>
+      <div class="field">
+        <label>Referring Physician</label>
+        <input type="text" value="Dr. Smith" readonly />
+      </div>
+      <div class="field">
+        <label>Diagnosis</label>
+        <input type="text" value="Chronic lower back pain (M54.5)" readonly />
+      </div>
+    </div>
+    <div class="actions">
+      <button class="primary">📤 Export PDF</button>
+      <button class="secondary">✏️ Edit</button>
+    </div>
+  </div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

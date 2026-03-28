@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient Timeline — MedNemo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; padding: 1.5rem; }
+    .header h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; }
+    .placeholder { background: #fff; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 3rem; text-align: center; color: #64748b; }
+    .placeholder .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .timeline { margin-top: 1.5rem; text-align: left; }
+    .event { display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 1rem; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .dot.visit { background: #3b82f6; }
+    .dot.lab { background: #10b981; }
+    .dot.rx { background: #f59e0b; }
+    .event-info .date { font-size: 0.75rem; color: #94a3b8; }
+    .event-info .desc { font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🕐 Patient Timeline</h1>
+  </div>
+  <div class="placeholder">
+    <div class="icon">📅</div>
+    <h2>Chronological Event Timeline</h2>
+    <p>Color-coded events with expandable details.</p>
+    <div class="timeline">
+      <div class="event">
+        <div class="dot visit"></div>
+        <div class="event-info">
+          <div class="date">2026-03-15</div>
+          <div class="desc">Office visit — Follow-up for chronic back pain</div>
+        </div>
+      </div>
+      <div class="event">
+        <div class="dot lab"></div>
+        <div class="event-info">
+          <div class="date">2026-03-10</div>
+          <div class="desc">Lab results — CBC, BMP within normal limits</div>
+        </div>
+      </div>
+      <div class="event">
+        <div class="dot rx"></div>
+        <div class="event-info">
+          <div class="date">2026-03-01</div>
+          <div class="desc">Prescription — Ibuprofen 400mg PRN</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
