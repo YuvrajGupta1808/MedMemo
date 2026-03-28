@@ -39,6 +39,16 @@ export interface TranscribeResponse {
   created_at: string;
 }
 
+// ---------- Sessions ----------
+
+export async function apiCreateSession(user_id: string, name: string): Promise<{ id: string; name: string }> {
+  return apiFetch('/sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id, name }),
+  });
+}
+
 // ---------- Ingest ----------
 
 export async function apiIngestFiles(files: File[], user_id: string, session_id: string): Promise<IngestResponse> {

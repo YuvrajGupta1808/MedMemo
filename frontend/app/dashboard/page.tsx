@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { X, Loader2 } from 'lucide-react';
 import { StatsDisplay } from '@/components/tool-ui/stats-display/stats-display';
 import { fetchUsers, fetchSessions, createUser, type Patient, type Session } from '@/lib/supabase';
+import { apiCreateSession } from '@/lib/api';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -303,6 +304,7 @@ function AddPatientModal({
     setModalError(null);
     try {
       await createUser(trimmed);
+      await apiCreateSession(trimmed, 'Default Session');
       onCreated();
     } catch (err) {
       setModalError(err instanceof Error ? err.message : 'Failed to create patient');

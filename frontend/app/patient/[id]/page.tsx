@@ -367,9 +367,8 @@ function DocumentsPanel({ documents, sessions, user, reload }: { documents: Docu
       <div className="bg-white rounded-2xl border border-slate-200 p-5">
         <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2"><Upload size={14} /> Upload Documents</h3>
         {!sessionId ? (
-          <div className="flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-600">
-            <AlertCircle size={16} className="shrink-0 text-slate-400" />
-            No session found for this patient. Create one via the MedNemo agent before uploading documents.
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Loader2 size={14} className="animate-spin" /> Loading session…
           </div>
         ) : (
         <div className="flex flex-wrap items-end gap-3">
@@ -488,9 +487,8 @@ function NotesPanel({ notes, sessions, user, reload }: { notes: Note[]; sessions
       <div className="bg-white rounded-2xl border border-slate-200 p-5">
         <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2"><Mic size={14} /> Record / Upload Audio</h3>
         {!sessionId ? (
-          <div className="flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-600">
-            <AlertCircle size={16} className="shrink-0 text-slate-400" />
-            No session found for this patient. Create one via the MedNemo agent before uploading documents.
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Loader2 size={14} className="animate-spin" /> Loading session…
           </div>
         ) : (
         <div className="flex flex-wrap items-end gap-3">
