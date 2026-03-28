@@ -1,10 +1,14 @@
+import asyncio
+import json
 import logging
 import os
 import sys
+from datetime import datetime
 
 import railtracks as rt
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger("RT.mednemo.global")
 
@@ -86,6 +90,67 @@ async def global_mednemo_chat():
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Broadcast SSE: support multiple consumers
+    _sse_subscribers: list[asyncio.Queue] = []
+
+    async def _broadcast(message: dict):
+        """Send message to ALL SSE subscribers."""
+        dead = []
+        for q in _sse_subscribers:
+            try:
+                q.put_nowait(message)
+            except asyncio.QueueFull:
+                dead.append(q)
+        for q in dead:
+            _sse_subscribers.remove(q)
+
+    # Monkey-patch the original sse_queue.put to also broadcast
+    _original_sse_put = chat_ui.sse_queue.put
+
+    async def _patched_sse_put(message):
+        await _broadcast(message)
+        # Also put in original queue for any internal consumers
+        try:
+            chat_ui.sse_queue.put_nowait(message)
+        except asyncio.QueueFull:
+            pass
+
+    chat_ui.sse_queue.put = _patched_sse_put
+
+    # Override the /events endpoint to use per-connection queues
+    @chat_ui.app.get("/events")
+    async def broadcast_events():
+        """SSE endpoint with per-connection queue (supports multiple consumers)."""
+        q: asyncio.Queue = asyncio.Queue(maxsize=100)
+        _sse_subscribers.append(q)
+
+        async def event_generator():
+            try:
+                while chat_ui.is_connected:
+                    try:
+                        message = await asyncio.wait_for(q.get(), timeout=2.0)
+                        yield f"data: {json.dumps(message)}\n\n"
+                    except asyncio.TimeoutError:
+                        heartbeat = {
+                            "type": "heartbeat",
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                        yield f"data: {json.dumps(heartbeat)}\n\n"
+                    except asyncio.CancelledError:
+                        break
+            finally:
+                if q in _sse_subscribers:
+                    _sse_subscribers.remove(q)
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+            },
+        )
+
     await chat_ui.connect()
     logger.info("Global Chat UI connected")
     await rt.broadcast("Chat UI connected")
