@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient Timeline — MedNemo</title>
+  <style>
+    :root {
+      --bg: #f8f9fb;
+      --card-bg: #ffffff;
+      --border: #e2e6ed;
+      --text: #1a1d23;
+      --text-muted: #6b7280;
+      --shadow: 0 1px 3px rgba(0,0,0,.08);
+      --radius: 8px;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --purple: #7c3aed;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.5; padding: 20px;
+    }
+    .header { margin-bottom: 16px; }
+    .header h1 { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .header h1::before { content: '🕐'; font-size: 20px; }
+    .count-badge { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+
+    /* Filter buttons */
+    .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--card-bg); font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all .15s; color: var(--text);
+    }
+    .filter-btn:hover { border-color: #94a3b8; }
+    .filter-btn.active { border-color: currentColor; }
+    .filter-btn .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .filter-btn.inactive { opacity: .45; }
+
+    /* Timeline */
+    .timeline { position: relative; padding-left: 28px; max-height: 75vh; overflow-y: auto; }
+    .timeline::before {
+      content: ''; position: absolute; left: 9px; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+    }
+    .tl-item { position: relative; margin-bottom: 16px; }
+    .tl-item .tl-dot {
+      position: absolute; left: -28px; top: 4px;
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 3px solid var(--bg); display: flex; align-items: center; justify-content: center;
+    }
+    .tl-item .tl-dot .inner { width: 10px; height: 10px; border-radius: 50%; }
+    .tl-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow: hidden; cursor: pointer; transition: border-color .15s;
+    }
+    .tl-card:hover { border-color: #94a3b8; }
+    .tl-card-header { padding: 12px 16px; }
+    .tl-date { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+    .tl-title { font-size: 14px; font-weight: 600; }
+    .tl-type-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 500; text-transform: capitalize; margin-top: 6px;
+    }
+    .tl-details {
+      padding: 0 16px; max-height: 0; overflow: hidden;
+      transition: max-height .25s ease, padding .25s ease;
+      font-size: 13px; color: var(--text-muted);
+    }
+    .tl-item.expanded .tl-details { max-height: 200px; padding: 0 16px 14px; }
+    .tl-expand-hint {
+      font-size: 11px; color: var(--text-muted); padding: 0 16px 8px;
+      opacity: .6; font-style: italic;
+    }
+    .tl-item.expanded .tl-expand-hint { display: none; }
+
+    .empty-state {
+      text-align: center; padding: 3rem; color: var(--text-muted);
+      background: var(--card-bg); border: 2px dashed var(--border); border-radius: 12px;
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="header"><h1>Patient Timeline</h1></div>
+  <div class="count-badge" id="countBadge"></div>
+  <div class="filters" id="filters"></div>
+  <div class="timeline" id="timeline"></div>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
