@@ -117,6 +117,12 @@ async def global_mednemo_chat():
 
     chat_ui.sse_queue.put = _patched_sse_put
 
+    # Remove the original /events route so our override takes priority
+    chat_ui.app.routes[:] = [
+        r for r in chat_ui.app.routes
+        if not (hasattr(r, "path") and r.path == "/events")
+    ]
+
     # Override the /events endpoint to use per-connection queues
     @chat_ui.app.get("/events")
     async def broadcast_events():
