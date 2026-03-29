@@ -73,14 +73,14 @@ export function useRailtracksChat({ agentUrl, context }: UseRailtracksChatOption
             state: 'result',
           };
 
-          // Show tool invocation IMMEDIATELY
+          // Show tool invocation IMMEDIATELY — merge into last assistant message if possible
           setMessages(prev => {
             const last = prev[prev.length - 1];
-            if (last && last.role === 'assistant' && !last.content && last.toolInvocations) {
+            if (last && last.role === 'assistant') {
               const updated = [...prev];
               updated[updated.length - 1] = {
                 ...last,
-                toolInvocations: [...last.toolInvocations, invocation],
+                toolInvocations: [...(last.toolInvocations || []), invocation],
               };
               return updated;
             }

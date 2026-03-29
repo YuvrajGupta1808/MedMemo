@@ -187,8 +187,8 @@ async def global_mednemo_chat():
             logger.info(f"Agent response ({len(response.content)} chars), {len(response.tool_invocations) - last_tool_idx} tool calls")
             msg_history = response.message_history.copy()
 
-            await chat_ui.send_message(HILMessage(content=response.content))
             await chat_ui.update_tools(response.tool_invocations[last_tool_idx:])
+            await chat_ui.send_message(HILMessage(content=response.content))
             last_tool_idx = len(response.tool_invocations)
 
         except Exception as e:
