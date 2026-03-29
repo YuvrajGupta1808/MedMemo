@@ -110,7 +110,7 @@ export default function PatientPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F4F5F7] text-slate-900 font-sans flex flex-col">
+    <div className="h-screen bg-[#F4F5F7] text-slate-900 font-sans flex flex-col overflow-hidden">
       {/* Top Navigation */}
       <header className="h-16 bg-white px-4 sm:px-6 flex items-center justify-between border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2">

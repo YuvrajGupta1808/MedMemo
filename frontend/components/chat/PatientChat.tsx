@@ -102,7 +102,7 @@ export default function PatientChat({ patientName, patientId, sessionId }: Patie
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 custom-scrollbar" role="log" aria-label="Chat messages" aria-live="polite">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 scrollbar-hidden" role="log" aria-label="Chat messages" aria-live="polite">
         <div className="flex flex-col gap-4">
           {messages.map((m) => (
             <div key={m.id} className={`flex gap-2.5 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
